@@ -1,0 +1,17 @@
+---
+title: "p8105_hw2_mm5354"
+author: "Mengran Ma"
+date: "2018/9/25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+```{r}
+transit_data = 
+  read_csv("./NYC_Transit_Subway_Entrance_And_Exit_Data.csv") %>% 
+  janitor::clean_names()
+```
+
