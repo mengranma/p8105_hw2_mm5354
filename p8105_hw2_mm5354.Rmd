@@ -9,9 +9,91 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
+
+#Problem 1
+#####Read and clean the data
 ```{r}
 transit_data = 
   read_csv("./NYC_Transit_Subway_Entrance_And_Exit_Data.csv") %>% 
   janitor::clean_names()
+```
+#####Retain line, station, name, station latitude / longitude, routes served, entry, vending, entrance type, and ADA compliance. 
+```{r}
+select(transit_data, line, station_name, station_latitude, station_longitude, route1:route11, entry, vending, entrance_type, ada)
+```
+#####Convert the entry variable from character (YES vs NO) to a logical variable 
+```{r}
+recode(transit_data$entry, YES = 1, NO = 0)
+```
+
+#####Write a short paragraph about this dataset – explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?
+```{r}
+nrow(transit_data)
+ncol(transit_data)
+```
+
+#####How many distinct stations are there?
+```{r}
+distinct(transit_data, station_name)
+```
+#####What proportion of station entrances / exits without vending allow entrance?
+```{r}
+sum(transit_data$vending == "NO")
+sum(transit_data$vending == "NO" & transit_data$entry == "YES")/sum(transit_data$vending == "NO", TRUE)
+```
+####Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train? Of the stations that serve the A train, how many are ADA compliant?
+
+
+#Problem 2
+#####Read and clean the Mr. Trash Wheel sheet:
+#####1. specify the sheet in the Excel file and to omit columns containing notes (using the range argument and cell_cols() function)
+#####2. use reasonable variable names
+#####3. omit rows that do not include dumpster-specific data
+#####4. rounds the number of sports balls to the nearest integer and converts the result to an integer variable (using as.integer)
+```{r}
+P2 = 
+  readxl::read_excel("./HealthyHarborWaterWheelTotals2017-9-26.xlsx", sheet = 1)
+P2 = janitor::clean_names(P2)
+```
+#####Omit rows that do not include dumpster-specific data
+```{r}
+P2[!is.na(P2$Dumpster), ]
+```
+
+#####Rounds the number of sports balls to the nearest integer and converts the result to an integer variable (using as.integer)
+```{r}
+P2SportsBalls = ceiling(P2$sports_balls)
+as.integer(P2SportsBalls)
+```
+####Read and clean precipitation data for 2016 and 2017. For each, omit rows without precipitation data and add a variable year. Next, combine datasets and convert month to a character variable (the variable month.name is built into R and should be useful).
+```{r}
+P22016 = 
+  readxl::read_excel("./HealthyHarborWaterWheelTotals2017-9-26.xlsx", sheet = 4, skip = 1)
+P22016 = janitor::clean_names(P22016)
+```
+```{r}
+P22017 = 
+  readxl::read_excel("./HealthyHarborWaterWheelTotals2017-9-26.xlsx", sheet = 3, skip = 1)
+P22017 = janitor::clean_names(P22017)
+```
+
+```{r}
+P22016noNa = na.omit(P22016, cols = seq_along(P22016))
+NewP22016 = mutate(P22016noNa, year = "2016")
+P22017noNa = na.omit(P22017, cols = seq_along(P22017))
+NewP22017 = mutate(P22017noNa, year = "2017")
+
+```
+```{r}
+Join_data = left_join(NewP22016, NewP22017, by = "month")
+Join_data[, 1] <- month.name[sapply(Join_data[, 1], as.integer)]
+Join_data
+```
+For available data,the total precipitation in 2017 is `r sum(NewP22017$total)` What was the median number of sports balls in a dumpster in 2016?
+
+
+
+```{r}
+
 ```
 
