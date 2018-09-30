@@ -8,8 +8,6 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
-library(httr)
-library(jsonlite)
 ```
 
 #Problem 1
@@ -36,14 +34,28 @@ ncol(transit_data)
 
 #####How many distinct stations are there?
 ```{r}
-distinct(transit_data, station_name)
+distinctstation = distinct(transit_data, station_name, line)
+length(distinctstation)
 ```
+####How many stations are ADA compliant?
+```{r}
+distinctstationADA = distinct(transit_data, station_name, line, ada == TRUE)
+length(distinctstationADA)
+```
+
 #####What proportion of station entrances / exits without vending allow entrance?
 ```{r}
 sum(transit_data$vending == "NO")
 sum(transit_data$vending == "NO" & transit_data$entry == "YES")/sum(transit_data$vending == "NO", TRUE)
 ```
 ####Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train? Of the stations that serve the A train, how many are ADA compliant?
+```{r}
+transit_tidy_data = gather(transit_data, key = route_number, value = route_name, route1:route11)
+#transit_tidy_data[!is.na(transit_tidy_data$train), ]
+trainA_data = filter(transit_tidy_data,route_name == "A")
+distinct(trainA_data, station_latitude)
+count(trainA_data,trainA_data$ada == TRUE)
+```
 
 
 #Problem 2
@@ -115,4 +127,42 @@ data("brfss_smart2010")
 P3 = janitor::clean_names(brfss_smart2010)
 P3
 ```
+####Focus on the “Overall Health” topic
+```{r}
+P3 = filter(P3, P3$topic == "Overall Health")
+```
+####Exclude variables for class, topic, question, sample size, and everything from lower confidence limit to GeoLocation
+```{r}
+P3 = select(P3, -class, -topic, -question, -sample_size)
+P3 = select(P3, year:data_value)
+```
+####Create a new variable showing the proportion of responses that were “Excellent” or “Very Good”
+```{r}
+P3response = filter(P3, P3$response == "Excellent" | P3$response == "Very good")
+P3 = mutate(P3, propotion_response = length(P3response$response)/length(P3$response))
+```
+####Structure data so that responses (excellent to poor) are variables taking the value of Data_value
+```{r}
+P3structure = spread(P3, key = "response", value = "data_value")
+```
+
+
+####How many unique locations are included in the dataset? Is every state represented? What state is observed the most?
+```{r}
+unique(P3$locationdesc)
+
+table(P3$locationdesc) 
+names(which.max(table(P3$locationdesc))) 
+```
+####In 2002, what is the median of the “Excellent” response value?
+```{r}
+P3responsevalue = filter(P3, P3$response == "Excellent" & P3$year == 2002)
+summary(P3responsevalue$data_value)
+```
+####Make a histogram of “Excellent” response values in the year 2002.
+```{r}
+ggplot(P3responsevalue, aes(x = P3responsevalue$data_value)) + 
+  geom_histogram()
+```
+
 

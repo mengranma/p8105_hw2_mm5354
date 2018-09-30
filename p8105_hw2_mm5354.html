@@ -355,22 +355,15 @@ $(document).ready(function () {
 </div>
 <div id="how-many-distinct-stations-are-there" class="section level5">
 <h5>How many distinct stations are there?</h5>
-<pre class="r"><code>distinct(transit_data, station_name)</code></pre>
-<pre><code>## # A tibble: 356 x 1
-##    station_name            
-##    &lt;chr&gt;                   
-##  1 25th St                 
-##  2 36th St                 
-##  3 45th St                 
-##  4 53rd St                 
-##  5 59th St                 
-##  6 77th St                 
-##  7 86th St                 
-##  8 95th St                 
-##  9 9th St                  
-## 10 Atlantic Av-Barclays Ctr
-## # ... with 346 more rows</code></pre>
+<pre class="r"><code>distinctstation = distinct(transit_data, station_name, line)
+length(distinctstation)</code></pre>
+<pre><code>## [1] 2</code></pre>
 </div>
+<div id="how-many-stations-are-ada-compliant" class="section level4">
+<h4>How many stations are ADA compliant?</h4>
+<pre class="r"><code>distinctstationADA = distinct(transit_data, station_name, line, ada == TRUE)
+length(distinctstationADA)</code></pre>
+<pre><code>## [1] 3</code></pre>
 <div id="what-proportion-of-station-entrances-exits-without-vending-allow-entrance" class="section level5">
 <h5>What proportion of station entrances / exits without vending allow entrance?</h5>
 <pre class="r"><code>sum(transit_data$vending == &quot;NO&quot;)</code></pre>
@@ -378,8 +371,33 @@ $(document).ready(function () {
 <pre class="r"><code>sum(transit_data$vending == &quot;NO&quot; &amp; transit_data$entry == &quot;YES&quot;)/sum(transit_data$vending == &quot;NO&quot;, TRUE)</code></pre>
 <pre><code>## [1] 0.375</code></pre>
 </div>
+</div>
 <div id="reformat-data-so-that-route-number-and-route-name-are-distinct-variables.-how-many-distinct-stations-serve-the-a-train-of-the-stations-that-serve-the-a-train-how-many-are-ada-compliant" class="section level4">
 <h4>Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train? Of the stations that serve the A train, how many are ADA compliant?</h4>
+<pre class="r"><code>transit_tidy_data = gather(transit_data, key = route_number, value = route_name, route1:route11)
+#transit_tidy_data[!is.na(transit_tidy_data$train), ]
+trainA_data = filter(transit_tidy_data,route_name == &quot;A&quot;)
+distinct(trainA_data, station_latitude)</code></pre>
+<pre><code>## # A tibble: 60 x 1
+##    station_latitude
+##               &lt;dbl&gt;
+##  1             40.8
+##  2             40.8
+##  3             40.8
+##  4             40.7
+##  5             40.8
+##  6             40.8
+##  7             40.9
+##  8             40.9
+##  9             40.8
+## 10             40.8
+## # ... with 50 more rows</code></pre>
+<pre class="r"><code>count(trainA_data,trainA_data$ada == TRUE)</code></pre>
+<pre><code>## # A tibble: 2 x 2
+##   `trainA_data$ada == TRUE`     n
+##   &lt;lgl&gt;                     &lt;int&gt;
+## 1 FALSE                       166
+## 2 TRUE                        107</code></pre>
 </div>
 </div>
 <div id="problem-2" class="section level1">
@@ -499,7 +517,7 @@ devtools::install_github(&quot;p8105/p8105.datasets&quot;, force = TRUE)</code><
 <pre><code>## Installing p8105.datasets</code></pre>
 <pre><code>## '/Library/Frameworks/R.framework/Resources/bin/R' --no-site-file  \
 ##   --no-environ --no-save --no-restore --quiet CMD INSTALL  \
-##   '/private/var/folders/zz/2x2wsj8x3jn90z6n_r1tl6kh0000gn/T/Rtmpf3xgCS/devtoolsb46e1582665c/P8105-p8105.datasets-21f5ad1'  \
+##   '/private/var/folders/zz/2x2wsj8x3jn90z6n_r1tl6kh0000gn/T/Rtmpcy8vNo/devtoolsb93265b643e9/P8105-p8105.datasets-21f5ad1'  \
 ##   --library='/Library/Frameworks/R.framework/Versions/3.5/Resources/library'  \
 ##   --install-tests</code></pre>
 <pre><code>## </code></pre>
@@ -527,6 +545,855 @@ P3</code></pre>
 ## #   data_value_footnote_symbol &lt;chr&gt;, data_value_footnote &lt;chr&gt;,
 ## #   data_source &lt;chr&gt;, class_id &lt;chr&gt;, topic_id &lt;chr&gt;, location_id &lt;chr&gt;,
 ## #   question_id &lt;chr&gt;, respid &lt;chr&gt;, geo_location &lt;chr&gt;</code></pre>
+<div id="focus-on-the-overall-health-topic" class="section level4">
+<h4>Focus on the “Overall Health” topic</h4>
+<pre class="r"><code>P3 = filter(P3, P3$topic == &quot;Overall Health&quot;)</code></pre>
+</div>
+<div id="exclude-variables-for-class-topic-question-sample-size-and-everything-from-lower-confidence-limit-to-geolocation" class="section level4">
+<h4>Exclude variables for class, topic, question, sample size, and everything from lower confidence limit to GeoLocation</h4>
+<pre class="r"><code>P3 = select(P3, -class, -topic, -question, -sample_size)
+P3 = select(P3, year:data_value)</code></pre>
+</div>
+<div id="create-a-new-variable-showing-the-proportion-of-responses-that-were-excellent-or-very-good" class="section level4">
+<h4>Create a new variable showing the proportion of responses that were “Excellent” or “Very Good”</h4>
+<pre class="r"><code>P3response = filter(P3, P3$response == &quot;Excellent&quot; | P3$response == &quot;Very good&quot;)
+P3 = mutate(P3, propotion_response = length(P3response$response)/length(P3$response))</code></pre>
+</div>
+<div id="structure-data-so-that-responses-excellent-to-poor-are-variables-taking-the-value-of-data_value" class="section level4">
+<h4>Structure data so that responses (excellent to poor) are variables taking the value of Data_value</h4>
+<pre class="r"><code>P3structure = spread(P3, key = &quot;response&quot;, value = &quot;data_value&quot;)</code></pre>
+</div>
+<div id="how-many-unique-locations-are-included-in-the-dataset-is-every-state-represented-what-state-is-observed-the-most" class="section level4">
+<h4>How many unique locations are included in the dataset? Is every state represented? What state is observed the most?</h4>
+<pre class="r"><code>unique(P3$locationdesc)</code></pre>
+<pre><code>##   [1] &quot;AL - Jefferson County&quot;            
+##   [2] &quot;AL - Mobile County&quot;               
+##   [3] &quot;AL - Tuscaloosa County&quot;           
+##   [4] &quot;AZ - Maricopa County&quot;             
+##   [5] &quot;AZ - Pinal County&quot;                
+##   [6] &quot;AZ - Pima County&quot;                 
+##   [7] &quot;AR - Benton County&quot;               
+##   [8] &quot;AR - Pulaski County&quot;              
+##   [9] &quot;AR - Washington County&quot;           
+##  [10] &quot;CA - Alameda County&quot;              
+##  [11] &quot;CA - Los Angeles County&quot;          
+##  [12] &quot;CA - Contra Costa County&quot;         
+##  [13] &quot;CA - Orange County&quot;               
+##  [14] &quot;CA - Placer County&quot;               
+##  [15] &quot;CA - Riverside County&quot;            
+##  [16] &quot;CA - Sacramento County&quot;           
+##  [17] &quot;CA - San Bernardino County&quot;       
+##  [18] &quot;CA - San Diego County&quot;            
+##  [19] &quot;CA - San Francisco County&quot;        
+##  [20] &quot;CA - San Mateo County&quot;            
+##  [21] &quot;CA - Santa Clara County&quot;          
+##  [22] &quot;CO - Adams County&quot;                
+##  [23] &quot;CO - Arapahoe County&quot;             
+##  [24] &quot;CO - Denver County&quot;               
+##  [25] &quot;CO - Douglas County&quot;              
+##  [26] &quot;CO - El Paso County&quot;              
+##  [27] &quot;CO - Jefferson County&quot;            
+##  [28] &quot;CO - Larimer County&quot;              
+##  [29] &quot;CT - Fairfield County&quot;            
+##  [30] &quot;CT - Tolland County&quot;              
+##  [31] &quot;CT - Hartford County&quot;             
+##  [32] &quot;CT - Middlesex County&quot;            
+##  [33] &quot;CT - New Haven County&quot;            
+##  [34] &quot;DE - Kent County&quot;                 
+##  [35] &quot;DE - New Castle County&quot;           
+##  [36] &quot;DE - Sussex County&quot;               
+##  [37] &quot;DC - District of Columbia&quot;        
+##  [38] &quot;FL - Alachua County&quot;              
+##  [39] &quot;FL - Baker County&quot;                
+##  [40] &quot;FL - Bay County&quot;                  
+##  [41] &quot;FL - Brevard County&quot;              
+##  [42] &quot;FL - Broward County&quot;              
+##  [43] &quot;FL - Clay County&quot;                 
+##  [44] &quot;FL - Citrus County&quot;               
+##  [45] &quot;FL - Collier County&quot;              
+##  [46] &quot;FL - Columbia County&quot;             
+##  [47] &quot;FL - Escambia County&quot;             
+##  [48] &quot;FL - DeSoto County&quot;               
+##  [49] &quot;FL - Duval County&quot;                
+##  [50] &quot;FL - Hernando County&quot;             
+##  [51] &quot;FL - Gadsden County&quot;              
+##  [52] &quot;FL - Gilchrist County&quot;            
+##  [53] &quot;FL - Hardee County&quot;               
+##  [54] &quot;FL - Highlands County&quot;            
+##  [55] &quot;FL - Hillsborough County&quot;         
+##  [56] &quot;FL - Jefferson County&quot;            
+##  [57] &quot;FL - Lake County&quot;                 
+##  [58] &quot;FL - Leon County&quot;                 
+##  [59] &quot;FL - Lee County&quot;                  
+##  [60] &quot;FL - Manatee County&quot;              
+##  [61] &quot;FL - Marion County&quot;               
+##  [62] &quot;FL - Martin County&quot;               
+##  [63] &quot;FL - Miami-Dade County&quot;           
+##  [64] &quot;FL - Monroe County&quot;               
+##  [65] &quot;FL - Nassau County&quot;               
+##  [66] &quot;FL - Orange County&quot;               
+##  [67] &quot;FL - Osceola County&quot;              
+##  [68] &quot;FL - Palm Beach County&quot;           
+##  [69] &quot;FL - Pasco County&quot;                
+##  [70] &quot;FL - Pinellas County&quot;             
+##  [71] &quot;FL - Polk County&quot;                 
+##  [72] &quot;FL - St. Johns County&quot;            
+##  [73] &quot;FL - St. Lucie County&quot;            
+##  [74] &quot;FL - Volusia County&quot;              
+##  [75] &quot;FL - Santa Rosa County&quot;           
+##  [76] &quot;FL - Sarasota County&quot;             
+##  [77] &quot;FL - Seminole County&quot;             
+##  [78] &quot;FL - Wakulla County&quot;              
+##  [79] &quot;GA - Cobb County&quot;                 
+##  [80] &quot;HI - Honolulu County&quot;             
+##  [81] &quot;GA - DeKalb County&quot;               
+##  [82] &quot;GA - Fulton County&quot;               
+##  [83] &quot;GA - Gwinnett County&quot;             
+##  [84] &quot;HI - Hawaii County&quot;               
+##  [85] &quot;HI - Kauai County&quot;                
+##  [86] &quot;ID - Bonneville County&quot;           
+##  [87] &quot;HI - Maui County&quot;                 
+##  [88] &quot;ID - Ada County&quot;                  
+##  [89] &quot;ID - Canyon County&quot;               
+##  [90] &quot;ID - Kootenai County&quot;             
+##  [91] &quot;ID - Nez Perce County&quot;            
+##  [92] &quot;ID - Twin Falls County&quot;           
+##  [93] &quot;IL - Cook County&quot;                 
+##  [94] &quot;IL - DuPage County&quot;               
+##  [95] &quot;IN - Allen County&quot;                
+##  [96] &quot;IN - Marion County&quot;               
+##  [97] &quot;IN - Lake County&quot;                 
+##  [98] &quot;IA - Linn County&quot;                 
+##  [99] &quot;KS - Sedgwick County&quot;             
+## [100] &quot;IA - Polk County&quot;                 
+## [101] &quot;KS - Johnson County&quot;              
+## [102] &quot;KS - Shawnee County&quot;              
+## [103] &quot;KS - Wyandotte County&quot;            
+## [104] &quot;LA - East Baton Rouge Parish&quot;     
+## [105] &quot;KY - Jefferson County&quot;            
+## [106] &quot;LA - Caddo Parish&quot;                
+## [107] &quot;LA - Jefferson Parish&quot;            
+## [108] &quot;LA - Orleans Parish&quot;              
+## [109] &quot;LA - St. Tammany Parish&quot;          
+## [110] &quot;ME - Androscoggin County&quot;         
+## [111] &quot;ME - Cumberland County&quot;           
+## [112] &quot;ME - Kennebec County&quot;             
+## [113] &quot;MD - Baltimore County&quot;            
+## [114] &quot;ME - Penobscot County&quot;            
+## [115] &quot;ME - Sagadahoc County&quot;            
+## [116] &quot;ME - York County&quot;                 
+## [117] &quot;MD - Anne Arundel County&quot;         
+## [118] &quot;MD - Cecil County&quot;                
+## [119] &quot;MD - Charles County&quot;              
+## [120] &quot;MD - Frederick County&quot;            
+## [121] &quot;MD - Harford County&quot;              
+## [122] &quot;MD - Prince George's County&quot;      
+## [123] &quot;MD - Howard County&quot;               
+## [124] &quot;MD - Montgomery County&quot;           
+## [125] &quot;MD - Queen Anne's County&quot;         
+## [126] &quot;MD - Washington County&quot;           
+## [127] &quot;MD - Baltimore city&quot;              
+## [128] &quot;MA - Bristol County&quot;              
+## [129] &quot;MA - Essex County&quot;                
+## [130] &quot;MA - Hampden County&quot;              
+## [131] &quot;MA - Hampshire County&quot;            
+## [132] &quot;MA - Middlesex County&quot;            
+## [133] &quot;MA - Norfolk County&quot;              
+## [134] &quot;MA - Plymouth County&quot;             
+## [135] &quot;MA - Suffolk County&quot;              
+## [136] &quot;MA - Worcester County&quot;            
+## [137] &quot;MI - Oakland County&quot;              
+## [138] &quot;MI - Kent County&quot;                 
+## [139] &quot;MI - Macomb County&quot;               
+## [140] &quot;MI - Wayne County&quot;                
+## [141] &quot;MN - Anoka County&quot;                
+## [142] &quot;MN - Dakota County&quot;               
+## [143] &quot;MN - Hennepin County&quot;             
+## [144] &quot;MN - Ramsey County&quot;               
+## [145] &quot;MN - Washington County&quot;           
+## [146] &quot;MO - St. Louis County&quot;            
+## [147] &quot;MS - DeSoto County&quot;               
+## [148] &quot;MS - Hinds County&quot;                
+## [149] &quot;MO - Jackson County&quot;              
+## [150] &quot;MO - St. Louis city&quot;              
+## [151] &quot;MT - Flathead County&quot;             
+## [152] &quot;MT - Lewis and Clark County&quot;      
+## [153] &quot;MT - Yellowstone County&quot;          
+## [154] &quot;NE - Adams County&quot;                
+## [155] &quot;NE - Dakota County&quot;               
+## [156] &quot;NE - Douglas County&quot;              
+## [157] &quot;NE - Hall County&quot;                 
+## [158] &quot;NE - Lincoln County&quot;              
+## [159] &quot;NE - Lancaster County&quot;            
+## [160] &quot;NE - Madison County&quot;              
+## [161] &quot;NE - Sarpy County&quot;                
+## [162] &quot;NE - Scotts Bluff County&quot;         
+## [163] &quot;NE - Seward County&quot;               
+## [164] &quot;NV - Clark County&quot;                
+## [165] &quot;NV - Washoe County&quot;               
+## [166] &quot;NH - Grafton County&quot;              
+## [167] &quot;NH - Merrimack County&quot;            
+## [168] &quot;NH - Hillsborough County&quot;         
+## [169] &quot;NH - Rockingham County&quot;           
+## [170] &quot;NH - Strafford County&quot;            
+## [171] &quot;NJ - Atlantic County&quot;             
+## [172] &quot;NJ - Bergen County&quot;               
+## [173] &quot;NJ - Burlington County&quot;           
+## [174] &quot;NJ - Camden County&quot;               
+## [175] &quot;NJ - Cape May County&quot;             
+## [176] &quot;NJ - Essex County&quot;                
+## [177] &quot;NJ - Gloucester County&quot;           
+## [178] &quot;NJ - Hudson County&quot;               
+## [179] &quot;NJ - Hunterdon County&quot;            
+## [180] &quot;NJ - Mercer County&quot;               
+## [181] &quot;NJ - Monmouth County&quot;             
+## [182] &quot;NJ - Middlesex County&quot;            
+## [183] &quot;NJ - Morris County&quot;               
+## [184] &quot;NJ - Ocean County&quot;                
+## [185] &quot;NJ - Somerset County&quot;             
+## [186] &quot;NJ - Passaic County&quot;              
+## [187] &quot;NJ - Sussex County&quot;               
+## [188] &quot;NJ - Union County&quot;                
+## [189] &quot;NJ - Warren County&quot;               
+## [190] &quot;NM - Bernalillo County&quot;           
+## [191] &quot;NM - Dona Ana County&quot;             
+## [192] &quot;NM - Sandoval County&quot;             
+## [193] &quot;NM - San Juan County&quot;             
+## [194] &quot;NM - Valencia County&quot;             
+## [195] &quot;NM - Santa Fe County&quot;             
+## [196] &quot;NY - Bronx County&quot;                
+## [197] &quot;NY - Erie County&quot;                 
+## [198] &quot;NY - Kings County&quot;                
+## [199] &quot;NY - Monroe County&quot;               
+## [200] &quot;NY - New York County&quot;             
+## [201] &quot;NY - Nassau County&quot;               
+## [202] &quot;NY - Queens County&quot;               
+## [203] &quot;NY - Suffolk County&quot;              
+## [204] &quot;NC - Cabarrus County&quot;             
+## [205] &quot;NY - Westchester County&quot;          
+## [206] &quot;NC - Buncombe County&quot;             
+## [207] &quot;NC - Catawba County&quot;              
+## [208] &quot;NC - Durham County&quot;               
+## [209] &quot;NC - Orange County&quot;               
+## [210] &quot;NC - Gaston County&quot;               
+## [211] &quot;NC - Guilford County&quot;             
+## [212] &quot;NC - Johnston County&quot;             
+## [213] &quot;NC - Mecklenburg County&quot;          
+## [214] &quot;NC - Randolph County&quot;             
+## [215] &quot;NC - Union County&quot;                
+## [216] &quot;NC - Wake County&quot;                 
+## [217] &quot;ND - Burleigh County&quot;             
+## [218] &quot;ND - Ward County&quot;                 
+## [219] &quot;ND - Cass County&quot;                 
+## [220] &quot;OH - Cuyahoga County&quot;             
+## [221] &quot;OH - Franklin County&quot;             
+## [222] &quot;OH - Lucas County&quot;                
+## [223] &quot;OH - Hamilton County&quot;             
+## [224] &quot;OH - Mahoning County&quot;             
+## [225] &quot;OH - Montgomery County&quot;           
+## [226] &quot;OH - Summit County&quot;               
+## [227] &quot;OH - Stark County&quot;                
+## [228] &quot;OK - Cleveland County&quot;            
+## [229] &quot;OK - Oklahoma County&quot;             
+## [230] &quot;OK - Tulsa County&quot;                
+## [231] &quot;OR - Clackamas County&quot;            
+## [232] &quot;OR - Lane County&quot;                 
+## [233] &quot;OR - Multnomah County&quot;            
+## [234] &quot;PA - Luzerne County&quot;              
+## [235] &quot;OR - Washington County&quot;           
+## [236] &quot;PA - Allegheny County&quot;            
+## [237] &quot;PA - Lehigh County&quot;               
+## [238] &quot;PA - Montgomery County&quot;           
+## [239] &quot;PA - Northampton County&quot;          
+## [240] &quot;PA - Philadelphia County&quot;         
+## [241] &quot;PA - Westmoreland County&quot;         
+## [242] &quot;RI - Bristol County&quot;              
+## [243] &quot;RI - Kent County&quot;                 
+## [244] &quot;RI - Newport County&quot;              
+## [245] &quot;RI - Providence County&quot;           
+## [246] &quot;RI - Washington County&quot;           
+## [247] &quot;SC - Aiken County&quot;                
+## [248] &quot;SC - Beaufort County&quot;             
+## [249] &quot;SC - Horry County&quot;                
+## [250] &quot;SC - Berkeley County&quot;             
+## [251] &quot;SC - Charleston County&quot;           
+## [252] &quot;SC - Greenville County&quot;           
+## [253] &quot;SC - Richland County&quot;             
+## [254] &quot;SD - Minnehaha County&quot;            
+## [255] &quot;SD - Pennington County&quot;           
+## [256] &quot;TN - Davidson County&quot;             
+## [257] &quot;TN - Hamilton County&quot;             
+## [258] &quot;TN - Knox County&quot;                 
+## [259] &quot;TN - Shelby County&quot;               
+## [260] &quot;TN - Sullivan County&quot;             
+## [261] &quot;TX - Dallas County&quot;               
+## [262] &quot;TX - Bexar County&quot;                
+## [263] &quot;TX - El Paso County&quot;              
+## [264] &quot;TX - Fort Bend County&quot;            
+## [265] &quot;TX - Harris County&quot;               
+## [266] &quot;TX - Hidalgo County&quot;              
+## [267] &quot;TX - Lubbock County&quot;              
+## [268] &quot;TX - Midland County&quot;              
+## [269] &quot;TX - Potter County&quot;               
+## [270] &quot;TX - Randall County&quot;              
+## [271] &quot;TX - Smith County&quot;                
+## [272] &quot;TX - Tarrant County&quot;              
+## [273] &quot;TX - Travis County&quot;               
+## [274] &quot;TX - Val Verde County&quot;            
+## [275] &quot;TX - Webb County&quot;                 
+## [276] &quot;TX - Wichita County&quot;              
+## [277] &quot;UT - Davis County&quot;                
+## [278] &quot;UT - Salt Lake County&quot;            
+## [279] &quot;UT - Summit County&quot;               
+## [280] &quot;UT - Tooele County&quot;               
+## [281] &quot;UT - Utah County&quot;                 
+## [282] &quot;UT - Weber County&quot;                
+## [283] &quot;VT - Chittenden County&quot;           
+## [284] &quot;VT - Franklin County&quot;             
+## [285] &quot;VT - Rutland County&quot;              
+## [286] &quot;VT - Orange County&quot;               
+## [287] &quot;VT - Washington County&quot;           
+## [288] &quot;VT - Windsor County&quot;              
+## [289] &quot;WA - Franklin County&quot;             
+## [290] &quot;WA - Benton County&quot;               
+## [291] &quot;WA - Clark County&quot;                
+## [292] &quot;WA - King County&quot;                 
+## [293] &quot;WA - Kitsap County&quot;               
+## [294] &quot;WA - Pierce County&quot;               
+## [295] &quot;WA - Snohomish County&quot;            
+## [296] &quot;WA - Spokane County&quot;              
+## [297] &quot;WA - Thurston County&quot;             
+## [298] &quot;WI - Milwaukee County&quot;            
+## [299] &quot;WA - Yakima County&quot;               
+## [300] &quot;WV - Kanawha County&quot;              
+## [301] &quot;WY - Laramie County&quot;              
+## [302] &quot;WY - Natrona County&quot;              
+## [303] &quot;AK - Anchorage Municipality&quot;      
+## [304] &quot;CO - Weld County&quot;                 
+## [305] &quot;GA - Clayton County&quot;              
+## [306] &quot;IL - Lake County&quot;                 
+## [307] &quot;IL - Will County&quot;                 
+## [308] &quot;IN - Vanderburgh County&quot;          
+## [309] &quot;IA - Scott County&quot;                
+## [310] &quot;KS - Leavenworth County&quot;          
+## [311] &quot;KS - Butler County&quot;               
+## [312] &quot;KS - Douglas County&quot;              
+## [313] &quot;KS - Riley County&quot;                
+## [314] &quot;LA - Calcasieu Parish&quot;            
+## [315] &quot;LA - Terrebonne Parish&quot;           
+## [316] &quot;LA - Rapides Parish&quot;              
+## [317] &quot;MS - George County&quot;               
+## [318] &quot;MS - Hancock County&quot;              
+## [319] &quot;MS - Harrison County&quot;             
+## [320] &quot;MS - Jackson County&quot;              
+## [321] &quot;MS - Rankin County&quot;               
+## [322] &quot;MS - Stone County&quot;                
+## [323] &quot;MT - Gallatin County&quot;             
+## [324] &quot;MT - Silver Bow County&quot;           
+## [325] &quot;NM - McKinley County&quot;             
+## [326] &quot;NC - Cumberland County&quot;           
+## [327] &quot;NC - Henderson County&quot;            
+## [328] &quot;NC - New Hanover County&quot;          
+## [329] &quot;OK - Canadian County&quot;             
+## [330] &quot;PA - Delaware County&quot;             
+## [331] &quot;PA - Bucks County&quot;                
+## [332] &quot;PA - Fayette County&quot;              
+## [333] &quot;UT - Wasatch County&quot;              
+## [334] &quot;TX - Williamson County&quot;           
+## [335] &quot;WA - Chelan County&quot;               
+## [336] &quot;WA - Douglas County&quot;              
+## [337] &quot;WA - Skamania County&quot;             
+## [338] &quot;WY - Fremont County&quot;              
+## [339] &quot;AL - Montgomery County&quot;           
+## [340] &quot;AK - Fairbanks North Star Borough&quot;
+## [341] &quot;AZ - Cochise County&quot;              
+## [342] &quot;AZ - Yuma County&quot;                 
+## [343] &quot;CO - Boulder County&quot;              
+## [344] &quot;MD - Calvert County&quot;              
+## [345] &quot;MA - Barnstable County&quot;           
+## [346] &quot;MA - Franklin County&quot;             
+## [347] &quot;NH - Coos County&quot;                 
+## [348] &quot;NC - Forsyth County&quot;              
+## [349] &quot;SC - Laurens County&quot;              
+## [350] &quot;SC - Orangeburg County&quot;           
+## [351] &quot;WY - Campbell County&quot;             
+## [352] &quot;WY - Sweetwater County&quot;           
+## [353] &quot;AZ - Santa Cruz County&quot;           
+## [354] &quot;CT - New London County&quot;           
+## [355] &quot;FL - Flagler County&quot;              
+## [356] &quot;FL - Hendry County&quot;               
+## [357] &quot;FL - Okeechobee County&quot;           
+## [358] &quot;OH - Licking County&quot;              
+## [359] &quot;SC - Dorchester County&quot;           
+## [360] &quot;SC - Lexington County&quot;            
+## [361] &quot;SC - York County&quot;                 
+## [362] &quot;TX - Cameron County&quot;              
+## [363] &quot;TX - Collin County&quot;               
+## [364] &quot;TX - Denton County&quot;               
+## [365] &quot;VA - Fairfax County&quot;              
+## [366] &quot;VA - Arlington County&quot;            
+## [367] &quot;VA - Prince William County&quot;       
+## [368] &quot;VA - Alexandria city&quot;             
+## [369] &quot;WA - Whatcom County&quot;              
+## [370] &quot;MD - Carroll County&quot;              
+## [371] &quot;MT - Cascade County&quot;              
+## [372] &quot;MT - Missoula County&quot;             
+## [373] &quot;NH - Cheshire County&quot;             
+## [374] &quot;OH - Lorain County&quot;               
+## [375] &quot;WA - Asotin County&quot;               
+## [376] &quot;MI - Genesee County&quot;              
+## [377] &quot;MI - Ingham County&quot;               
+## [378] &quot;OK - Carter County&quot;               
+## [379] &quot;OK - Cherokee County&quot;             
+## [380] &quot;OK - Comanche County&quot;             
+## [381] &quot;OK - Ottawa County&quot;               
+## [382] &quot;OK - Garfield County&quot;             
+## [383] &quot;OK - Pittsburg County&quot;            
+## [384] &quot;OK - Pottawatomie County&quot;         
+## [385] &quot;OK - Rogers County&quot;               
+## [386] &quot;OK - Sequoyah County&quot;             
+## [387] &quot;OK - Wagoner County&quot;              
+## [388] &quot;OK - Washington County&quot;           
+## [389] &quot;OR - Jackson County&quot;              
+## [390] &quot;OR - Marion County&quot;               
+## [391] &quot;OR - Yamhill County&quot;              
+## [392] &quot;SC - Spartanburg County&quot;          
+## [393] &quot;CO - Teller County&quot;               
+## [394] &quot;LA - Ouachita Parish&quot;             
+## [395] &quot;TN - Montgomery County&quot;           
+## [396] &quot;TN - Stewart County&quot;              
+## [397] &quot;GA - Richmond County&quot;             
+## [398] &quot;CT - Windham County&quot;              
+## [399] &quot;PA - Chester County&quot;              
+## [400] &quot;PA - Armstrong County&quot;            
+## [401] &quot;PA - Franklin County&quot;             
+## [402] &quot;PA - Lancaster County&quot;            
+## [403] &quot;SC - Darlington County&quot;           
+## [404] &quot;SC - Florence County&quot;</code></pre>
+<pre class="r"><code>table(P3$locationdesc) </code></pre>
+<pre><code>## 
+##       AK - Anchorage Municipality AK - Fairbanks North Star Borough 
+##                                35                                20 
+##             AL - Jefferson County                AL - Mobile County 
+##                                45                                20 
+##            AL - Montgomery County            AL - Tuscaloosa County 
+##                                10                                15 
+##                AR - Benton County               AR - Pulaski County 
+##                                30                                45 
+##            AR - Washington County               AZ - Cochise County 
+##                                30                                 5 
+##              AZ - Maricopa County                  AZ - Pima County 
+##                                45                                45 
+##                 AZ - Pinal County            AZ - Santa Cruz County 
+##                                35                                 5 
+##                  AZ - Yuma County               CA - Alameda County 
+##                                25                                30 
+##          CA - Contra Costa County           CA - Los Angeles County 
+##                                15                                45 
+##                CA - Orange County                CA - Placer County 
+##                                20                                 5 
+##             CA - Riverside County            CA - Sacramento County 
+##                                30                                15 
+##        CA - San Bernardino County             CA - San Diego County 
+##                                30                                30 
+##         CA - San Francisco County             CA - San Mateo County 
+##                                15                                10 
+##           CA - Santa Clara County                 CO - Adams County 
+##                                15                                45 
+##              CO - Arapahoe County               CO - Boulder County 
+##                                45                                10 
+##                CO - Denver County               CO - Douglas County 
+##                                45                                30 
+##               CO - El Paso County             CO - Jefferson County 
+##                                35                                45 
+##               CO - Larimer County                CO - Teller County 
+##                                20                                 5 
+##                  CO - Weld County             CT - Fairfield County 
+##                                15                                45 
+##              CT - Hartford County             CT - Middlesex County 
+##                                45                                35 
+##             CT - New Haven County            CT - New London County 
+##                                45                                20 
+##               CT - Tolland County               CT - Windham County 
+##                                40                                 5 
+##         DC - District of Columbia                  DE - Kent County 
+##                                45                                45 
+##            DE - New Castle County                DE - Sussex County 
+##                                45                                45 
+##               FL - Alachua County                 FL - Baker County 
+##                                10                                10 
+##                   FL - Bay County               FL - Brevard County 
+##                                10                                10 
+##               FL - Broward County                FL - Citrus County 
+##                                35                                10 
+##                  FL - Clay County               FL - Collier County 
+##                                10                                10 
+##              FL - Columbia County                FL - DeSoto County 
+##                                10                                10 
+##                 FL - Duval County              FL - Escambia County 
+##                                30                                10 
+##               FL - Flagler County               FL - Gadsden County 
+##                                 5                                10 
+##             FL - Gilchrist County                FL - Hardee County 
+##                                10                                10 
+##                FL - Hendry County              FL - Hernando County 
+##                                 5                                10 
+##             FL - Highlands County          FL - Hillsborough County 
+##                                10                                35 
+##             FL - Jefferson County                  FL - Lake County 
+##                                10                                10 
+##                   FL - Lee County                  FL - Leon County 
+##                                10                                10 
+##               FL - Manatee County                FL - Marion County 
+##                                10                                10 
+##                FL - Martin County            FL - Miami-Dade County 
+##                                10                                40 
+##                FL - Monroe County                FL - Nassau County 
+##                                10                                10 
+##            FL - Okeechobee County                FL - Orange County 
+##                                 5                                35 
+##               FL - Osceola County            FL - Palm Beach County 
+##                                15                                40 
+##                 FL - Pasco County              FL - Pinellas County 
+##                                10                                35 
+##                  FL - Polk County            FL - Santa Rosa County 
+##                                10                                10 
+##              FL - Sarasota County              FL - Seminole County 
+##                                10                                10 
+##             FL - St. Johns County             FL - St. Lucie County 
+##                                10                                10 
+##               FL - Volusia County               FL - Wakulla County 
+##                                10                                10 
+##               GA - Clayton County                  GA - Cobb County 
+##                                15                                30 
+##                GA - DeKalb County                GA - Fulton County 
+##                                35                                35 
+##              GA - Gwinnett County              GA - Richmond County 
+##                                15                                 5 
+##                HI - Hawaii County              HI - Honolulu County 
+##                                40                                40 
+##                 HI - Kauai County                  HI - Maui County 
+##                                35                                40 
+##                  IA - Linn County                  IA - Polk County 
+##                                15                                45 
+##                 IA - Scott County                   ID - Ada County 
+##                                10                                45 
+##            ID - Bonneville County                ID - Canyon County 
+##                                20                                45 
+##              ID - Kootenai County             ID - Nez Perce County 
+##                                10                                35 
+##            ID - Twin Falls County                  IL - Cook County 
+##                                 5                                45 
+##                IL - DuPage County                  IL - Lake County 
+##                                45                                30 
+##                  IL - Will County                 IN - Allen County 
+##                                 5                                10 
+##                  IN - Lake County                IN - Marion County 
+##                                45                                45 
+##           IN - Vanderburgh County                KS - Butler County 
+##                                 5                                 5 
+##               KS - Douglas County               KS - Johnson County 
+##                                 5                                45 
+##           KS - Leavenworth County                 KS - Riley County 
+##                                 5                                 5 
+##              KS - Sedgwick County               KS - Shawnee County 
+##                                45                                45 
+##             KS - Wyandotte County             KY - Jefferson County 
+##                                35                                45 
+##                 LA - Caddo Parish             LA - Calcasieu Parish 
+##                                30                                15 
+##      LA - East Baton Rouge Parish             LA - Jefferson Parish 
+##                                40                                40 
+##               LA - Orleans Parish              LA - Ouachita Parish 
+##                                45                                 5 
+##               LA - Rapides Parish           LA - St. Tammany Parish 
+##                                10                                30 
+##            LA - Terrebonne Parish            MA - Barnstable County 
+##                                10                                10 
+##               MA - Bristol County                 MA - Essex County 
+##                                45                                45 
+##              MA - Franklin County               MA - Hampden County 
+##                                 5                                45 
+##             MA - Hampshire County             MA - Middlesex County 
+##                                20                                45 
+##               MA - Norfolk County              MA - Plymouth County 
+##                                45                                45 
+##               MA - Suffolk County             MA - Worcester County 
+##                                45                                45 
+##          MD - Anne Arundel County               MD - Baltimore city 
+##                                45                                45 
+##             MD - Baltimore County               MD - Calvert County 
+##                                45                                 5 
+##               MD - Carroll County                 MD - Cecil County 
+##                                 5                                25 
+##               MD - Charles County             MD - Frederick County 
+##                                30                                45 
+##               MD - Harford County                MD - Howard County 
+##                                30                                30 
+##            MD - Montgomery County       MD - Prince George's County 
+##                                45                                45 
+##          MD - Queen Anne's County            MD - Washington County 
+##                                25                                30 
+##          ME - Androscoggin County            ME - Cumberland County 
+##                                 5                                45 
+##              ME - Kennebec County             ME - Penobscot County 
+##                                20                                20 
+##             ME - Sagadahoc County                  ME - York County 
+##                                20                                45 
+##               MI - Genesee County                MI - Ingham County 
+##                                 5                                 5 
+##                  MI - Kent County                MI - Macomb County 
+##                                30                                40 
+##               MI - Oakland County                 MI - Wayne County 
+##                                45                                45 
+##                 MN - Anoka County                MN - Dakota County 
+##                                30                                40 
+##              MN - Hennepin County                MN - Ramsey County 
+##                                45                                45 
+##            MN - Washington County               MO - Jackson County 
+##                                 5                                45 
+##               MO - St. Louis city             MO - St. Louis County 
+##                                35                                45 
+##                MS - DeSoto County                MS - George County 
+##                                25                                 5 
+##               MS - Hancock County              MS - Harrison County 
+##                                 5                                10 
+##                 MS - Hinds County               MS - Jackson County 
+##                                45                                 5 
+##                MS - Rankin County                 MS - Stone County 
+##                                15                                 5 
+##               MT - Cascade County              MT - Flathead County 
+##                                 5                                20 
+##              MT - Gallatin County       MT - Lewis and Clark County 
+##                                10                                 5 
+##              MT - Missoula County            MT - Silver Bow County 
+##                                 5                                10 
+##           MT - Yellowstone County              NC - Buncombe County 
+##                                35                                45 
+##              NC - Cabarrus County               NC - Catawba County 
+##                                35                                35 
+##            NC - Cumberland County                NC - Durham County 
+##                                30                                35 
+##               NC - Forsyth County                NC - Gaston County 
+##                                25                                35 
+##              NC - Guilford County             NC - Henderson County 
+##                                45                                20 
+##              NC - Johnston County           NC - Mecklenburg County 
+##                                35                                45 
+##           NC - New Hanover County                NC - Orange County 
+##                                30                                45 
+##              NC - Randolph County                 NC - Union County 
+##                                40                                35 
+##                  NC - Wake County              ND - Burleigh County 
+##                                40                                30 
+##                  ND - Cass County                  ND - Ward County 
+##                                45                                15 
+##                 NE - Adams County                NE - Dakota County 
+##                                15                                20 
+##               NE - Douglas County                  NE - Hall County 
+##                                45                                20 
+##             NE - Lancaster County               NE - Lincoln County 
+##                                45                                15 
+##               NE - Madison County                 NE - Sarpy County 
+##                                15                                45 
+##          NE - Scotts Bluff County                NE - Seward County 
+##                                30                                15 
+##              NH - Cheshire County                  NH - Coos County 
+##                                10                                 5 
+##               NH - Grafton County          NH - Hillsborough County 
+##                                45                                45 
+##             NH - Merrimack County            NH - Rockingham County 
+##                                45                                45 
+##             NH - Strafford County              NJ - Atlantic County 
+##                                45                                25 
+##                NJ - Bergen County            NJ - Burlington County 
+##                                45                                40 
+##                NJ - Camden County              NJ - Cape May County 
+##                                40                                25 
+##                 NJ - Essex County            NJ - Gloucester County 
+##                                45                                40 
+##                NJ - Hudson County             NJ - Hunterdon County 
+##                                45                                30 
+##                NJ - Mercer County             NJ - Middlesex County 
+##                                30                                45 
+##              NJ - Monmouth County                NJ - Morris County 
+##                                45                                45 
+##                 NJ - Ocean County               NJ - Passaic County 
+##                                40                                40 
+##              NJ - Somerset County                NJ - Sussex County 
+##                                45                                30 
+##                 NJ - Union County                NJ - Warren County 
+##                                45                                30 
+##            NM - Bernalillo County              NM - Dona Ana County 
+##                                45                                40 
+##              NM - McKinley County              NM - San Juan County 
+##                                 5                                25 
+##              NM - Sandoval County              NM - Santa Fe County 
+##                                40                                35 
+##              NM - Valencia County                 NV - Clark County 
+##                                25                                45 
+##                NV - Washoe County                 NY - Bronx County 
+##                                45                                15 
+##                  NY - Erie County                 NY - Kings County 
+##                                25                                45 
+##                NY - Monroe County                NY - Nassau County 
+##                                20                                45 
+##              NY - New York County                NY - Queens County 
+##                                45                                45 
+##               NY - Suffolk County           NY - Westchester County 
+##                                45                                40 
+##              OH - Cuyahoga County              OH - Franklin County 
+##                                40                                35 
+##              OH - Hamilton County               OH - Licking County 
+##                                40                                 5 
+##                OH - Lorain County                 OH - Lucas County 
+##                                15                                35 
+##              OH - Mahoning County            OH - Montgomery County 
+##                                35                                35 
+##                 OH - Stark County                OH - Summit County 
+##                                20                                35 
+##              OK - Canadian County                OK - Carter County 
+##                                10                                 5 
+##              OK - Cherokee County             OK - Cleveland County 
+##                                 5                                45 
+##              OK - Comanche County              OK - Garfield County 
+##                                 5                                 5 
+##              OK - Oklahoma County                OK - Ottawa County 
+##                                45                                 5 
+##             OK - Pittsburg County          OK - Pottawatomie County 
+##                                 5                                 5 
+##                OK - Rogers County              OK - Sequoyah County 
+##                                 5                                 5 
+##                 OK - Tulsa County               OK - Wagoner County 
+##                                45                                 5 
+##            OK - Washington County             OR - Clackamas County 
+##                                 5                                45 
+##               OR - Jackson County                  OR - Lane County 
+##                                 5                                15 
+##                OR - Marion County             OR - Multnomah County 
+##                                 5                                45 
+##            OR - Washington County               OR - Yamhill County 
+##                                45                                 5 
+##             PA - Allegheny County             PA - Armstrong County 
+##                                45                                 5 
+##                 PA - Bucks County               PA - Chester County 
+##                                20                                 5 
+##              PA - Delaware County               PA - Fayette County 
+##                                25                                25 
+##              PA - Franklin County             PA - Lancaster County 
+##                                 5                                 5 
+##                PA - Lehigh County               PA - Luzerne County 
+##                                 5                                30 
+##            PA - Montgomery County           PA - Northampton County 
+##                                40                                 5 
+##          PA - Philadelphia County          PA - Westmoreland County 
+##                                45                                35 
+##               RI - Bristol County                  RI - Kent County 
+##                                10                                45 
+##               RI - Newport County            RI - Providence County 
+##                                45                                45 
+##            RI - Washington County                 SC - Aiken County 
+##                                45                                35 
+##              SC - Beaufort County              SC - Berkeley County 
+##                                25                                30 
+##            SC - Charleston County            SC - Darlington County 
+##                                40                                 5 
+##            SC - Dorchester County              SC - Florence County 
+##                                 5                                 5 
+##            SC - Greenville County                 SC - Horry County 
+##                                40                                25 
+##               SC - Laurens County             SC - Lexington County 
+##                                 5                                25 
+##            SC - Orangeburg County              SC - Richland County 
+##                                 5                                45 
+##           SC - Spartanburg County                  SC - York County 
+##                                 5                                20 
+##             SD - Minnehaha County            SD - Pennington County 
+##                                45                                45 
+##              TN - Davidson County              TN - Hamilton County 
+##                                35                                15 
+##                  TN - Knox County            TN - Montgomery County 
+##                                10                                 5 
+##                TN - Shelby County               TN - Stewart County 
+##                                45                                 5 
+##              TN - Sullivan County                 TX - Bexar County 
+##                                15                                35 
+##               TX - Cameron County                TX - Collin County 
+##                                 5                                 5 
+##                TX - Dallas County                TX - Denton County 
+##                                45                                 5 
+##               TX - El Paso County             TX - Fort Bend County 
+##                                35                                10 
+##                TX - Harris County               TX - Hidalgo County 
+##                                45                                15 
+##               TX - Lubbock County               TX - Midland County 
+##                                20                                 5 
+##                TX - Potter County               TX - Randall County 
+##                                 5                                10 
+##                 TX - Smith County               TX - Tarrant County 
+##                                10                                35 
+##                TX - Travis County             TX - Val Verde County 
+##                                35                                 5 
+##                  TX - Webb County               TX - Wichita County 
+##                                10                                10 
+##            TX - Williamson County                 UT - Davis County 
+##                                10                                40 
+##             UT - Salt Lake County                UT - Summit County 
+##                                45                                35 
+##                UT - Tooele County                  UT - Utah County 
+##                                45                                35 
+##               UT - Wasatch County                 UT - Weber County 
+##                                 5                                45 
+##              VA - Alexandria city             VA - Arlington County 
+##                                 5                                 5 
+##               VA - Fairfax County        VA - Prince William County 
+##                                 5                                 5 
+##            VT - Chittenden County              VT - Franklin County 
+##                                45                                45 
+##                VT - Orange County               VT - Rutland County 
+##                                35                                35 
+##            VT - Washington County               VT - Windsor County 
+##                                35                                45 
+##                WA - Asotin County                WA - Benton County 
+##                                 5                                40 
+##                WA - Chelan County                 WA - Clark County 
+##                                35                                45 
+##               WA - Douglas County              WA - Franklin County 
+##                                25                                25 
+##                  WA - King County                WA - Kitsap County 
+##                                45                                40 
+##                WA - Pierce County              WA - Skamania County 
+##                                45                                10 
+##             WA - Snohomish County               WA - Spokane County 
+##                                45                                40 
+##              WA - Thurston County               WA - Whatcom County 
+##                                40                                 5 
+##                WA - Yakima County             WI - Milwaukee County 
+##                                40                                45 
+##               WV - Kanawha County              WY - Campbell County 
+##                                45                                 5 
+##               WY - Fremont County               WY - Laramie County 
+##                                15                                45 
+##               WY - Natrona County            WY - Sweetwater County 
+##                                40                                 5</code></pre>
+<pre class="r"><code>names(which.max(table(P3$locationdesc))) </code></pre>
+<pre><code>## [1] &quot;AL - Jefferson County&quot;</code></pre>
+</div>
+<div id="in-2002-what-is-the-median-of-the-excellent-response-value" class="section level4">
+<h4>In 2002, what is the median of the “Excellent” response value?</h4>
+<pre class="r"><code>P3responsevalue = filter(P3, P3$response == &quot;Excellent&quot; &amp; P3$year == 2002)
+summary(P3responsevalue$data_value)</code></pre>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+##   14.60   20.35   23.60   23.96   26.90   43.20       2</code></pre>
+</div>
+<div id="make-a-histogram-of-excellent-response-values-in-the-year-2002." class="section level4">
+<h4>Make a histogram of “Excellent” response values in the year 2002.</h4>
+<pre class="r"><code>ggplot(P3responsevalue, aes(x = P3responsevalue$data_value)) + 
+  geom_histogram()</code></pre>
+<pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+<pre><code>## Warning: Removed 2 rows containing non-finite values (stat_bin).</code></pre>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABUAAAAPACAYAAAD0ZtPZAAAEGWlDQ1BrQ0dDb2xvclNwYWNlR2VuZXJpY1JHQgAAOI2NVV1oHFUUPrtzZyMkzlNsNIV0qD8NJQ2TVjShtLp/3d02bpZJNtoi6GT27s6Yyc44M7v9oU9FUHwx6psUxL+3gCAo9Q/bPrQvlQol2tQgKD60+INQ6Ium65k7M5lpurHeZe58853vnnvuuWfvBei5qliWkRQBFpquLRcy4nOHj4g9K5CEh6AXBqFXUR0rXalMAjZPC3e1W99Dwntf2dXd/p+tt0YdFSBxH2Kz5qgLiI8B8KdVy3YBevqRHz/qWh72Yui3MUDEL3q44WPXw3M+fo1pZuQs4tOIBVVTaoiXEI/MxfhGDPsxsNZfoE1q66ro5aJim3XdoLFw72H+n23BaIXzbcOnz5mfPoTvYVz7KzUl5+FRxEuqkp9G/Ajia219thzg25abkRE/BpDc3pqvphHvRFys2weqvp+krbWKIX7nhDbzLOItiM8358pTwdirqpPFnMF2xLc1WvLyOwTAibpbmvHHcvttU57y5+XqNZrLe3lE/Pq8eUj2fXKfOe3pfOjzhJYtB/yll5SDFcSDiH+hRkH25+L+sdxKEAMZahrlSX8ukqMOWy/jXW2m6M9LDBc31B9LFuv6gVKg/0Szi3KAr1kGq1GMjU/aLbnq6/lRxc4XfJ98hTargX++DbMJBSiYMIe9Ck1YAxFkKEAG3xbYaKmDDgYyFK0UGYpfoWYXG+fAPPI6tJnNwb7ClP7IyF+D+bjOtCpkhz6CFrIa/I6sFtNl8auFXGMTP34sNwI/JhkgEtmDz14ySfaRcTIBInmKPE32kxyyE2Tv+thKbEVePDfW/byMM1Kmm0XdObS7oGD/MypMXFPXrCwOtoYjyyn7BV29/MZfsVzpLDdRtuIZnbpXzvlf+ev8MvYr/Gqk4H/kV/G3csdazLuyTMPsbFhzd1UabQbjFvDRmcWJxR3zcfHkVw9GfpbJmeev9F08WW8uDkaslwX6avlWGU6NRKz0g/SHtCy9J30o/ca9zX3Kfc19zn3BXQKRO8ud477hLnAfc1/G9mrzGlrfexZ5GLdn6ZZrrEohI2wVHhZywjbhUWEy8icMCGNCUdiBlq3r+xafL549HQ5jH+an+1y+LlYBifuxAvRN/lVVVOlwlCkdVm9NOL5BE4wkQ2SMlDZU97hX86EilU/lUmkQUztTE6mx1EEPh7OmdqBtAvv8HdWpbrJS6tJj3n0CWdM6busNzRV3S9KTYhqvNiqWmuroiKgYhshMjmhTh9ptWhsF7970j/SbMrsPE1suR5z7DMC+P/Hs+y7ijrQAlhyAgccjbhjPygfeBTjzhNqy28EdkUh8C+DU9+z2v/oyeH791OncxHOs5y2AtTc7nb/f73TWPkD/qwBnjX8BoJ98VQNcC+8AAEAASURBVHgB7N0LsB11fQfwf5Kb181NLkkILxsxPEpSxeFVa7HWEgdTaqXWgRYH+7iKbacqRctYO7YmpT76sNOijkwpNVEHW2qnhZZQnImCom3FpvgoBKEgKC2QQBIIJITcR/2vPZclOXtfZ3PO7n8/Z+Zy9+zz//v8NicnX/bsmTX2/UfwIECAAAECBAgQIECAAAECBAgQIECAQIICsxOsSUkECBAgQIAAAQIECBAgQIAAAQIECBDIBASgTgQCBAgQIECAAAECBAgQIECAAAECBJIVEIAm21qFESBAgAABAgQIECBAgAABAgQIECAgAHUOECBAgAABAgQIECBAgAABAgQIECCQrIAANNnWKowAAQIECBAgQIAAAQIECBAgQIAAAQGoc4AAAQIECBAgQIAAAQIECBAgQIAAgWQFBKDJtlZhBAgQIECAAAECBAgQIECAAAECBAgIQJ0DBAgQIECAAAECBAgQIECAAAECBAgkKyAATba1CiNAgAABAgQIECBAgAABAgQIECBAQADqHCBAgAABAgQIECBAgAABAgQIECBAIFkBAWiyrVUYAQIECBAgQIAAAQIECBAgQIAAAQICUOcAAQIECBAgQIAAAQIECBAgQIAAAQLJCghAk22twggQIECAAAECBAgQIECAAAECBAgQEIA6BwgQIECAAAECBAgQIECAAAECBAgQSFagL9nKKlTYww8/XKHR1Hcoy5YtC2NjY2HXrl31LcLICUxTYMWKFaGvry879x955JFpbm11AvUVWLJkSZg/f37YsWNHfYswcgLTFFi6dGlYsGBBttX27dvDyMjINPdgdQL1FOjv7w+Dg4PBv5vq2T+jnpnA4sWLw8DAQLbxzp07w/79+2e2I1sRqJnAvHnzwvLly7P3+cPDw9Ma/bHHHjut9fMruwI0r2GaAAECBAgQIECAAAECBAgQIECAAIGkBASgSbVTMQQIECBAgAABAgQIECBAgAABAgQI5AUEoHkN0wQIECBAgAABAgQIECBAgAABAgQIJCUgAE2qnYohQIAAAQIECBAgQIAAAQIECBAgQCAvIADNa5gmQIAAAQIECBAgQIAAAQIECBAgQCApAQFoUu1UDAECBAgQIECAAAECBAgQIECAAAECeQEBaF7DNAECBAgQIECAAAECBAgQIECAAAECSQkIQJNqp2IIECBAgAABAgQIECBAgAABAgQIEMgLCEDzGqYJECBAgAABAgQIECBAgAABAgQIEEhKQACaVDsVQ4AAAQIECBAgQIAAAQIECBAgQIBAXkAAmtcwTYAAAQIECBAgQIAAAQIECBAgQIBAUgIC0KTaqRgCBAgQIECAAAECBAgQIECAAAECBPICAtC8hmkCBAgQIECAAAECBAgQIECAAAECBJISEIAm1U7FECBAgAABAgQIECBAgAABAgQIECCQFxCA5jVMEyBAgAABAgQIECBAgAABAgQIECCQlIAANKl2KoYAAQIECBAgQIAAAQIECBAgQIAAgbyAADSvYZoAAQIECBAgQIAAAQIECBAgQIAAgaQEBKBJtVMxBAgQIECAAAECBAgQIECAAAECBAjkBQSgeQ3TBAgQIECAAAECBAgQIECAAAECBAgkJSAATaqdiiFAgAABAgQIECBAgAABAgQIECBAIC8gAM1rmCZAgAABAgQIECBAgAABAgQIECBAICkBAWhS7VQMAQIECBAgQIAAAQIECBAgQIAAAQJ5AQFoXsM0AQIECBAgQIAAAQIECBAgQIAAAQJJCQhAk2qnYggQIECAAAECBAgQIECAAAECBAgQyAsIQPMapgkQIECAAAECBAgQIECAAAECBAgQSEpAAJpUOxVDgAABAgQIECBAgAABAgQIECBAgEBeQACa1zBNgAABAgQIECBAgAABAgQIECBAgEBSAgLQpNqpGAIECBAgQIAAAQIECBAgQIAAAQIE8gIC0LyGaQIECBAgQIAAAQIECBAgQIAAAQIEkhIQgCbVTsUQIECAAAECBAgQIECAAAECBAgQIJAXEIDmNUwTIECAAAECBAgQIECAAAECBAgQIJCUgAA0qXYqhgABAgQIECBAgAABAgQIECBAgACBvIAANK9hmgABAgQIECBAgAABAgQIECBAgACBpAQE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QIAAAQIECBAgQIAAAQIEai4gAK15Aw2fAAECBAgQIECAAAECBAgQIECAAIFiAQFosY0lBAgQIECAAAECBAgQIECAAAECBAjUXEAAWvMGGj4BAgQIECBAgAABAgQIECBAgAABAsUCAtBiG0sIECBAgAABAgQIECBAgAABAgQIEKi5gAC05g00fAIECBAgQIAAAQIECBAgQIAAAQIEigUEoMU2lhAgQIAAAQIECBAgQIAAAQIECBAgUHMBAWjNG2j4BAgQIECAAAECBAgQIECAAAECBAgUCwhAi20sIUCAAAECBAgQIECAAAECBAgQIECg5gIC0Jo30PAJECBAgAABAgQIECBAgAABAgQIECgWEIAW21hCgAABAgQIECBAgAABAgQIECBAgEDNBQSgNW+g4RMgQIAAAQIECBAgQIAAAQIECBAgUCwgAC22sYQAAQIECBAgQIAAAQIECBAgQIAAgZoLCEBr3kDDJ0CAAAECBAgQIECAAAECBAgQIECgWEAAWmxjCQECBAgQIECAAAECBAgQIECAAAECNRcQgNa8gYZPgAABAgQIECBAgAABAgQIECBAgECxgAC02MYSAgQIECBAgAABAgQIECBAgAABAgRqLiAArXkDDZ8AAQIECBAgQIAAAQIECBAgQIAAgWIBAWixjSUECBAgQIAAAQIECBAgQIAAAQIECNRcQABa8wYaPgECBAgQIECAAAECBAgQIECAAAECxQIC0GIbSwgQIECAAAECBAgQIECAAAECBAgQqLmAALTmDTR8AgQIECBAgAABAgQIECBAgAABAgSKBQSgxTaWECBAgAABAgQIECBAgAABAgQIECBQcwEBaM0baPgECBAgQIAAAQIECBAgQIAAAQIECBQLCECLbSwhQIAAAQIECBAgQIAAAQIECBAgQKDmAgLQmjfQ8AkQIECAAAECBAgQIECAAAECBAgQKBYQgBbbWEKAAAECBAgQIECAAAECBAgQIECAQM0FBKA1b6DhEyBAgAABAgQIECBAgAABAgQIECBQLCAALbaxhAABAgQIECBAgAABAgQIECBAgACBmgsIQGveQMMnQIAAAQIECBAgQIAAAQIECBAgQKBYQABabGMJAQIECBAgQIAAAQIECBAgQIAAAQI1FxCA1ryBhk+AAAECBAgQIECAAAECBAgQIECAQLGAALTYxhICBAgQIECAAAECBAgQIECAAAECBGouIACteQMNnwABAgQIECBAgAABAgQIECBAgACBYgEBaLGNJQQIECBAgAABAgQIECBAgAABAgQI1FxAAFrzBho+AQIECBAgQIAAAQIECBAgQIAAAQLFAgLQYhtLCBAgQIAAAQIECBAgQIAAAQIECBCouYAAtOYNNHwCBAgQIECAAAECBAgQIECAAAECBIoFBKDFNpYQIECAAAECBAgQIECAAAECBAgQIFBzAQFozRto+AQIECBAgAABAgQIECBAgAABAgQIFAsIQIttLCFAgAABAgQIECBAgAABAgQIECBAoOYCAtCaN9DwCRAgQIAAAQIECBAgQIAAAQIECBAoFhCAFttYQoAAAQIECBAgQIAAAQIECBAgQIBAzQUEoDVvoOETIECAAAECBAgQIECAAAECBAgQIFAsIAAttrGEAAECBAgQIECAAAECBAgQIECAAIGaCwhAa95AwydAgAABAgQIECBAgAABAgQIECBAoFhAAFpsYwkBAgQIECBAgAABAgQIECBAgAABAjUXEIDWvIGGT4AAAQIECBAgQIAAAQIECBAgQIBAsYAAtNjGEgIECBAgQIAAAQIECBAgQIAAAQIEai4gAK15Aw2fAAECBAgQIECAAAECBAgQIECAAIFiAQFosY0lBAgQIECAAAECBAgQIECAAAECBAjUXEAAWvMGGj4BAgQIECBAgAABAgQIECBAgAABAsUCAtBiG0sIECBAgAABAgQIECBAgAABAgQIEKi5gAC05g00fAIECBAgQIAAAQIECBAgQIAAAQIEigUEoMU2lhAgQIAAAQIECBAgQIAAAQIECBAgUHMBAWjNG2j4BAgQIECAAAECBAgQIECAAAECBAgUCwhAi20sIUCAAAECBAgQIECAAAECBAgQIECg5gIC0Jo30PAJECBAgAABAgQIECBAgAABAgQIECgWEIAW21hCgAABAgQIECBAgAABAgQIECBAgEDNBQSgNW+g4RMgQIAAAQIECBAgQIAAAQIECBAgUCwgAC22sYQAAQIECBAgQIAAAQIECBAgQIAAgZoLCEBr3kDDJ0CAAAECBAgQIECAAAECBAgQIECgWEAAWmxjCQECBAgQIECAAAECBAgQIECAAAECNRcQgNa8gYZPgAABAgQIECBAgAABAgQIECBAgECxgAC02MYSAgQIECBAgAABAgQIECBAgAABAgRqLiAArXkDDZ8AAQIECBAgQIAAAQIECBAgQIAAgWIBAWixjSUECBAgQIAAAQIECBAgQIAAAQIECNRcQABa8wYaPgECBAgQIECAAAECBAgQIECAAAECxQIC0GIbSwgQIECAAAECBAgQIECAAAECBAgQqLmAALTmDTR8AgQIECBAgAABAgQIECBAgAABAgSKBQSgxTaWECBAgAABAgQIECBAgAABAgQIECBQcwEBaM0baPgECBAgQIAAAQIECBAgQIAAAQIECBQLCECLbSwhQIAAAQIECBAgQIAAAQIECBAgQKDmAgLQmjfQ8AkQIECAAAECBAgQIECAAAECBAgQKBYQgBbbWEKAAAECBAgQIECAAAECBAgQIECAQM0FBKA1b6DhEyBAgAABAgQIECBAgAABAgQIECBQLNBXvCiNJZs3bw6f+tSnwoYNG8KaNWvaFnXLLbeEb37zm22XxZlHHnlkuPjiiwuXW0CAAAECBAgQIECAAAECBAgQIECAQDUFkg5Av/Wtb4UPf/jDYXh4OOzfv7+wAzfccEPYunVr4fITTjhBAFqoYwEBAgQIECBAgAABAgQIECBAgACB6gokG4DecccdYf369Vn4ORn/vffem61y6aWXhvnz5x+y+uLFiw+ZZwYBAgQIECBAgAABAgQIECBAgAABAtUXSC4A3bt3b/j4xz8e4lWd8TF79uwwOjpa2Int27eHJ598MixfvjxceOGFhetZQIAAAQIECBAgQIAAAQIECBAgQIBA/QSS+xKkSy65JAs/+/v7w/ve976watWqCbvSuvrzlFNOmXA9CwkQIECAAAECBAgQIECAAAECBAgQqJ9AcgHo7t27w7p168KmTZvCueeeO2lHDg5A4/1Cd+7cOel2ViBAgAABAgQIECBAgAABAgQIECBAoPoCyX0EfuPGjeHoo4+esnwrAI3B5zvf+c4Q7x06MjIS4n0/f/RHfzTE+4LGj8dP9Pja1742/pH7g9dbsmRJePvb337wbM9nINDX1xfGxsbC4ODgDLa2CYFyBLp9/sXbeLQe3T5267h+N1egl+fc3Llzs9vY9HIMze28ynslEM/71iO+F43vezwINEEgvs+PD6/5Tei2GlsC+df8+AnWBQsWtBb5TSBpgda/cQcGBrr6Xie5AHQ64Wc8o/77v/87O7E+/elPhzlz5oTVq1dnX5x0//33hy984QvhP/7jP8KVV14ZTjrppMIT8L777guf/exn2y5fsWJFePe73912mZkzE2i9QZrZ1rYi0JlAfHPSi8esWbNCr47di3odsxoCVTjnqjCGanTDKJomsHDhwqaVrF4C3us4BxorIPxsbOsbXXi33+skF4BO5+x5+umnw//+7/9mm8SPzf/2b/92aDUgzv+DP/iDcNddd4UPfvCD4eqrrw6Ct+noWpcAAQIECBAgQIAAAQIECBAgQIBA7wUaHYDGsPMzn/lMeOyxx8Jpp50W4hVWrcdxxx0XrrjiinDxxReH+DH522+/PZx99tmtxc/7vXbt2nDiiSc+b17rybx588Ljjz/eeup3BwKtj4I99dRTHezFpgQ6E+j2n+cjjjgiuzo9fgzS/Yk7652tpy/Q7fM9P8J45Wf8aNgTTzyRn22aQNIC8b1OfO8YH7t27Qqjo6NJ16s4Ai2B+fPnh/hRyF7+vdMai98EuiUQ3+u0LsB68sknw4EDB7p1aMch0FOBeHFhvOVJ/A6feAvK6Twmu0XlRPtqdAAa7zuwcuXK7KcdUvw4/amnnpp9DD5+JL4oAD3qqKNC/Cl6PPzww0WLzJ+GQAyA4s+zzz47ja2sSqBcgW6ff/n7v3X72OXK2VsdBXp5zrU+CtbLMdSxZ8Zcb4F84Bn/ITzdfxTUu3qjb7JA65N2XvObfBY0r/YY/Lce8TtJnP8tDb+bIhDf68Rzv1uP575do1tHrNlxWsGm/xtZs8YZLgECBAgQIECAAAECBAgQIECAAIHvCzT6CtBvf/vb4d///d+zm21feOGFbU+I7du3Z/N/6Id+qO1yMwkQIECAAAECBAgQIECAAAECBAgQqK5AowPQeG+la665Jrv358te9rJw/PHHP69T8X57d955ZzbvxS9+8fOWeUKAAAECBAgQIECAAAECBAgQIECAQPUFGv0R+PjFR/ELRuI99jZt2vS8ew8888wz4Y//+I/Dvn37wite8YqwevXq6nfTCAkQIECAAAECBAgQIECAAAECBAgQeJ5Ao68AjV+wsH79+vCud70rbNmyJWzdujW85jWvyb5x+Utf+lJ46KGHwqpVq8I73/nO56F5QoAAAQIECBAgQIAAAQIECBAgQIBAPQQaHYDGFp111lnhqquuCldeeWXYtm1buO6667LOLVy4MKxbty4LR/v7++vRTaMkQIAAAQIECBAgQIAAAQIECBAgQOB5AskHoPGj7ZM94v09r7766vDEE0+E733ve2Hx4sVh5cqVYfbsRt8hYDI2ywkQIECAAAECBAgQIECAAAECBAhUXiD5AHQ6HRgcHAzxx4MAAQIECBAgQIAAAQIECBAgQIAAgTQEXOKYRh9VQYAAAQIECBAgQIAAAQIECBAgQIBAGwEBaBsUswgQIECAAAECBAgQIECAAAECBAgQSENAAJpGH1VBgAABAgQIECBAgAABAgQIECBAgEAbAQFoGxSzCBAgQIAAAQIECBAgQIAAAQIECBBIQ0AAmkYfVUGAAAECBAgQIECAAAECBAgQIECAQBsBAWgbFLMIECBAgAABAgQIECBAgAABAgQIEEhDQACaRh9VQYAAAQIECBAgQIAAAQIECBAgQIBAGwEBaBsUswgQIECAAAECBAgQIECAAAECBAgQSENAAJpGH1VBgAABAgQIECBAgAABAgQIECBAgEAbAQFoGxSzCBAgQIAAAQIECBAgQIAAAQIECBBIQ0AAmkYfVUGAAAECBAgQIECAAAECBAgQIECAQBsBAWgbFLMIECBAgAABAgQIECBAgAABAgQIEEhDQACaRh9VQYAAAQIECBAgQIAAAQIECBAgQIBAGwEBaBsUswgQIECAAAECBAgQIECAAAECBAgQSENAAJpGH1VBgAABAgQIECBAgAABAgQIECBAgEAbAQFoGxSzCBAgQIAAAQIECBAgQIAAAQIECBBIQ0AAmkYfVUGAAAECBAgQIECAAAECBAgQIECAQBsBAWgbFLMIECBAgAABAgQIECBAgAABAgQIEEhDQACaRh9VQYAAAQIECBAgQIAAAQIECBAgQIBAGwEBaBsUswgQIECAAAECBAgQIECAAAECBAgQSENAAJpGH1VBgAABAgQIECBAgAABAgQIECBAgEAbAQFoGxSzCBAgQIAAAQIECBAgQIAAAQIECBBIQ0AAmkYfVUGAAAECBAgQIECAAAECBAgQIECAQBsBAWgbFLMIECBAgAABAgQIECBAgAABAgQIEEhDQACaRh9VQYAAAQIECBAgQIAAAQIECBAgQIBAGwEBaBsUswgQIECAAAECBAgQIECAAAECBAgQSENAAJpGH1VBgAABAgQIECBAgAABAgQIECBAgEAbAQFoGxSzCBAgQIAAAQIECBAgQIAAAQIECBBIQ0AAmkYfVUGAAAECBAgQIECAAAECBAgQIECAQBsBAWgbFLMIECBAgAABAgQIECBAgAABAgQIEEhDQACaRh9VQYAAAQIECBAgQIAAAQIECBAgQIBAGwEBaBsUswgQIECAAAECBAgQIECAAAECBAgQSEOgL40yVEGAAAECBAgQ6J3A0NBQ7w4+wZE3btw4wVKLCBAgQIAAAQIECDRDwBWgzeizKgkQIECAAAECBAgQIECAAAECBAg0UkAA2si2K5oAAQIECBAgQIAAAQIECBAgQIBAMwQEoM3osyoJECBAgAABAgQIECBAgAABAgQINFJAANrItiuaAAECBAgQIECAAAECBAgQIECAQDMEBKDN6LMqCRAgQIAAAQIECBAgQIAAAQIECDRSQADayLYrmgABAgQIECBAgAABAgQIECBAgEAzBASgzeizKgkQIECAAAECBAgQIECAAAECBAg0UkAA2si2K5oAAQIECBAgQIAAAQIECBAgQIBAMwQEoM3osyoJECBAgAABAgQIECBAgAABAgQINFJAANrItiuaAAECBAgQIECAAAECBAgQIECAQDMEBKDN6LMqCRAgQIAAAQIECBAgQIAAAQIECDRSQADayLYrmgABAgQIECBAgAABAgQIECBAgEAzBASgzeizKgkQIECAAAECBAgQIECAAAECBAg0UkAA2si2K5oAAQIECBAgQIAAAQIECBAgQIBAMwQEoM3osyoJECBAgAABAgQIECBAgAABAgQINFJAANrItiuaAAECBAgQIECAAAECBAgQIECAQDMEBKDN6LMqCRAgQIAAAQIECBAgQIAAAQIECDRSQADayLYrmgABAgQIECBAgAABAgQIECBAgEAzBASgzeizKgkQIECAAAECBAgQIECAAAECBAg0UkAA2si2K5oAAQIECBAgQIAAAQIECBAgQIBAMwQEoM3osyoJECBAgAABAgQIECBAgAABAgQINFJAANrItiuaAAECBAgQIECAAAECBAgQIECAQDMEBKDN6LMqCRAgQIAAAQIECBAgQIAAAQIECDRSQADayLYrmgABAgQIECBAgAABAgQIECBAgEAzBASgzeizKgkQIECAAAECBAgQIECAAAECBAg0UkAA2si2K5oAAQIECBAgQIAAAQIECBAgQIBAMwQEoM3osyoJECBAgAABAgQIECBAgAABAgQINFJAANrItiuaAAECBAgQIECAAAECBAgQIECAQDMEBKDN6LMqCRAgQIAAAQIECBAgQIAAAQIECDRSQADayLYrmgABAgQIECBAgAABAgQIECBAgEAzBASgzeizKgkQIECAAAECBAgQIECAAAECBAg0UkAA2si2K5oAAQIECBAgQIAAAQIECBAgQIBAMwQEoM3osyoJECBAgAABAgQIECBAgAABAgQINFJAANrItiuaAAECBAgQIECAAAECBAgQIECAQDMEBKDN6LMqCRAgQIAAAQIECBAgQIAAAQIECDRSQADayLYrmgABAgQIECBAgAABAgQIECBAgEAzBASgzeizKgkQIECAAAECBAgQIECAAAECBAg0UkAA2si2K5oAAQIECBAgQIAAAQIECBAgQIBAMwQEoM3osyoJECBAgAABAgQIECBAgAABAgQINFJAANrItiuaAAECBAgQIECAAAECBAgQIECAQDMEBKDN6LMqCRAgQIAAAQIECBAgQIAAAQIECDRSQADayLYrmgABAgQIECBAgAABAgQIECBAgEAzBASgzeizKgkQIECAAAECBAgQIECAAAECBAg0UqCvkVUrmgABAgQaKzA0NNTY2hVOgAABAgQIECBAgACBJgq4ArSJXVczAQIECBAgQIAAAQIECBAgQIAAgYYICEAb0mhlEiBAgAABAgQIECBAgAABAgQIEGiigAC0iV1XMwECBAgQIECAAAECBAgQIECAAIGGCAhAG9JoZRIgQIAAAQIECBAgQIAAAQIECBBoooAAtIldVzMBAgQIECBAgAABAgQIECBAgACBhggIQBvSaGUSIECAAAECBAgQIECAAAECBAgQaKKAALSJXVczAQIECBAgQIAAAQIECBAgQIAAgYYICEAb0mhlEiBAgAABAgQIECBAgAABAgQIEGiigAC0iV1XMwECBAgQIECAAAECBAgQIECAAIGGCAhAG9JoZRIgQIAAAQIECBAgQIAAAQIECBBoooAAtIldVzMBAgQIECBAgAABAgQIECBAgACBhggIQBvSaGUSIECAAAECBAgQIECAAAECBAgQaKKAALSJXVczAQIECBAgQIAAAQIECBAgQIAAgYYICEAb0mhlEiBAgAABAgQIECBAgAABAgQIEGiigAC0iV1XMwECBAgQIECAAAECBAgQIECAAIGGCAhAG9JoZRIgQIAAAQIECBAgQIAAAQIECBBoooAAtIldVzMBAgQIECBAgAABAgQIECBAgACBhggIQBvSaGUSIECAAAECBAgQIECAAAECBAgQaKKAALSJXVczAQIECBAgQIAAAQIECBAgQIAAgYYI9DWkzp6W2d/f39Pjp3LwOXPmhLGxscAzlY7Ws45un3+zZz/3/6m6fex6dsioyxTo5TnX19cXZs2a5TW/w4b2socdDr2Rm8f3Oq3HwoULw+joaOup3wSSFpg3b15Wn9espNusuIME5s6dOz5n/vz5If93wPgCEwQSFGid6wsWLOjqex0BaBdOpsHBwS4cpTmH4NmcXlex0l6dfzEI6tWxq9gHY+qOQBXOuSqMoTvah+co/A6Pazf2unjx4m4cxjEIVErAa1al2mEwXRRYtGhRF4/mUASqIdDt9zoC0C70/eGHH+7CUdI/xLJly7IrQHft2pV+sSqsrEC3/zyvWLEixCvh4tXPjzzySGVdDCxNgW6f73nFJUuWhHg1xI4dO/KzTU9ToJc9nOZQrf59gaVLl4Z4NUR8bN++PYyMjGTT/kMgdYF45WcMP71mpd5p9eUFYvgzMDCQzdq5c2fYv39/frFpAskKxKv+ly9fnr3PHx4enladxx577LTWz6/83Gcr83NNEyBAgAABAgQIECBAgAABAgQIECBAIAEBAWgCTVQCAQIECBAgQIAAAQIECBAgQIAAAQLtBQSg7V3MJUCAAAECBAgQIECAAAECBAgQIEAgAQEBaAJNVAIBAgQIECBAgAABAgQIECBAgAABAu0FBKDtXcwlQIAAAQIECBAgQIAAAQIECBAgQCABAQFoAk1UAgECBAgQIECAAAECBAgQIECAAAEC7QUEoO1dzCVAgAABAgQIECBAgAABAgQIECBAIAEBAWgCTVQCAQIECBAgQIAAAQIECBAgQIAAAQLtBQSg7V3MJUCAAAECBAgQIECAAAECBAgQIEAgAQEBaAJNVAIBAgQIECBAgAABAgQIECBAgAABAu0FBKDtXcwlQIAAAQIECBAgQIAAAQIECBAgQCABAQFoAk1UAgECBAgQIECAAAECBAgQIECAAAEC7QUEoO1dzCVAgAABAgQIECBAgAABAgQIECBAIAEBAWgCTVQCAQIECBAgQIAAAQIECBAgQIAAAQLtBQSg7V3MJUCAAAECBAgQIECAAAECBAgQIEAgAQEBaAJNVAIBAgQIECBAgAABAgQIECBAgAABAu0FBKDtXcwlQIAAAQIECBAgQIAAAQIECBAgQCABAQFoAk1UAgECBAgQIECAAAECBAgQIECAAAEC7QUEoO1dzCVAgAABAgQIECBAgAABAgQIECBAIAEBAWgCTVQCAQIECBAgQIAAAQIECBAgQIAAAQLtBfrazzaXAAECBAgQIFBNgaGhoWoOzKgIECBAgAABAgQIEKikgCtAK9kWgyJAgAABAgQIECBAgAABAgQIECBAoAwBAWgZivZBgAABAgQIECBAgAABAgQIECBAgEAlBQSglWyLQREgQIAAAQIECBAgQIAAAQIECBAgUIaAALQMRfsgQIAAAQIECBAgQIAAAQIECBAgQKCSAgLQSrbFoAgQIECAAAECBAgQIECAAAECBAgQKENAAFqGon0QIECAAAECBAgQIECAAAECBAgQIFBJAQFoJdtiUAQIECBAgAABAgQIECBAgAABAgQIlCEgAC1D0T4IECBAgAABAgQIECBAgAABAgQIEKikgAC0km0xKAIECBAgQIAAAQIECBAgQIAAAQIEyhAQgJahaB8ECBAgQIAAAQIECBAgQIAAAQIECFRSQABaybYYFAECBAgQIECAAAECBAgQIECAAAECZQgIQMtQtA8CBAgQIECAAAECBAgQIECAAAECBCopIACtZFsMigABAgQIECBAgAABAgQIECBAgACBMgQEoGUo2gcBAgQIECBAgAABAgQIECBAgAABApUUEIBWsi0GRYAAAQIECBAgQIAAAQIECBAgQIBAGQIC0DIU7YMAAQIECBAgQIAAAQIECBAgQIAAgUoKCEAr2RaDIkCAAAECBAgQIECAAAECBAgQIECgDAEBaBmK9kGAAAECBAgQIECAAAECBAgQIECAQCUFBKCVbItBESBAgAABAgQIECBAgAABAgQIECBQhoAAtAxF+yBAgAABAgQIECBAgAABAgQIECBAoJICAtBKtsWgCBAgQIAAAQIECBAgQIAAAQIECBAoQ0AAWoaifRAgQIAAAQIECBAgQIAAAQIECBAgUEkBAWgl22JQBAgQIECAAAECBAgQIECAAAECBAiUISAALUPRPggQIECAAAECBAgQIECAAAECBAgQqKSAALSSbTEoAgQIECBAgAABAgQIECBAgAABAgTKEBCAlqFoHwQIECBAgAABAgQIECBAgAABAgQIVFJAAFrJthgUAQIECBAgQIAAAQIECBAgQIAAAQJlCAhAy1C0DwIECBAgQIAAAQIECBAgQIAAAQIEKikgAK1kWwyKAAECBAgQIECAAAECBAgQIECAAIEyBASgZSjaBwECBAgQIECAAAECBAgQIECAAAEClRQQgFayLQZFgAABAgQIECBAgAABAgQIECBAgEAZAgLQMhTtgwABAgQIECBAgAABAgQIECBAgACBSgoIQCvZFoMiQIAAAQIECBAgQIAAAQIECBAgQKAMAQFoGYr2QYAAAQIECBAgQIAAAQIECBAgQIBAJQUEoJVsi0ERIECAAAECBAgQIECAAAECBAgQIFCGgAC0DEX7IECAAAECBAgQIECAAAECBAgQIECgkgIC0Eq2xaAIECBAgAABAgQIECBAgAABAgQIEChDQABahqJ9ECBAgAABAgQIECBAgAABAgQIECBQSQEBaCXbYlAECBAgQIAAAQIECBAgQIAAAQIECJQhIAAtQ9E+CBAgQIAAAQIECBAgQIAAAQIECBCopIAAtJJtMSgCBAgQIECAAAECBAgQIECAAAECBMoQEICWoWgfBAgQIECAAAECBAgQIECAAAECBAhUUqCvkqMyKAIECBAgQKDnAkNDQz0fgwEQIECAAAECBAgQIECgUwFXgHYqaHsCBAgQIECAAAECBAgQIECAAAECBCorIACtbGsMjAABAgQIECBAgAABAgQIECBAgACBTgUEoJ0K2p4AAQIECBAgQIAAAQIECBAgQIAAgcoKCEAr2xoDI0CAAAECBAgQIECAAAECBAgQIECgUwEBaKeCtidAgAABAgQIECBAgAABAgQIECBAoLICAtDKtsbACBAgQIAAAQIECBAgQIAAAQIECBDoVEAA2qmg7QkQIECAAAECBAgQIECAAAECBAgQqKyAALSyrTEwAgQIECBAgAABAgQIECBAgAABAgQ6FRCAdipoewIECBAgQIAAAQIECBAgQIAAAQIEKisgAK1sawyMAAECBAgQIECAAAECBAgQIECAAIFOBQSgnQrangABAgQIECBAgAABAgQIECBAgACBygoIQCvbGgMjQIAAAQIECBAgQIAAAQIECBAgQKBTAQFop4K2J0CAAAECBAgQIECAAAECBAgQIECgsgIC0Mq2xsAIECBAgAABAgQIECBAgAABAgQIEOhUQADaqaDtCRAgQIAAAQIECBAgQIAAAQIECBCorIAAtLKtMTACBAgQIECAAAECBAgQIECAAAECBDoVEIB2Kmh7AgQIECBAgAABAgQIECBAgAABAgQqKyAArWxrDIwAAQIECBAgQIAAAQIECBAgQIAAgU4FBKCdCtqeAAECBAgQIECAAAECBAgQIECAAIHKCghAK9saAyNAgAABAgQIECBAgAABAgQIECBAoFMBAWingrYnQIAAAQIECBAgQIAAAQIECBAgQKCyAgLQyrbGwAgQIECAAAECBAgQIECAAAECBAgQ6FRAANqpoO0JECBAgAABAgQIECBAgAABAgQIEKisgAC0sq0xMAIECBAgQIAAAQIECBAgQIAAAQIEOhUQgHYqaHsCBAgQIECAAAECBAgQIECAAAECBCorIACtbGsMjAABAgQIECBAgAABAgQIECBAgACBTgUEoJ0K2p4AAQIECBAgQIAAAQIECBAgQIAAgcoKCEAr2xoDI0CAAAECBAgQIECAAAECBAgQIECgUwEBaKeCtidAgAABAgQIECBAgAABAgQIECBAoLICAtDKtsbACBAgQIAAAQIECBAgQIAAAQIECBDoVEAA2qmg7QkQIECAAAECBAgQIECAAAECBAgQqKyAALSyrTEwAgQIECBAgAABAgQIECBAgAABAgQ6FRCAdipoewIECBAgQIAAAQIECBAgQIAAAQIEKisgAK1sawyMAAECBAgQIECAAAECBAgQIECAAIFOBQSgnQrangABAgQIECBAgAABAgQIECBAgACBygr0VXZkJQ1s8+bN4VOf+lTYsGFDWLNmTeFe77777vDZz342PPjgg2HRokXh1FNPDWvXrg0nnHBC4TYWECBAgAABAgQIECBAgAABAgQIECBQbYGkA9Bvfetb4cMf/nAYHh4O+/fvL+zE3//934crr7wyWz4wMBCeffbZ8J//+Z/h7/7u78If/dEfhTPOOKNwWwsIECBAgAABAgQIECBAgAABAgQIEKiuQLIfgb/jjjvCe9/73iz8nIg/hqQf+chHwrx588IHPvCBcNNNN4Wbb745XHrppWHfvn3h8ssvD4888shEu7CMAAECBAgQIECAAAECBAgQIECAAIGKCiQXgO7duze76jMGmLt27QqzZ09c4ic/+ckwNjYW3vSmN4Wf/MmfDLNmzQpz584NF154YbjgggvCgQMHwvXXX1/R9hkWAQIECBAgQIAAAQIECBAgQIAAAQITCUycDk60ZUWXXXLJJeGGG24I/f394X3ve19YtWpV4UhjWHr77bdny9etW3fIeq15N95446RXkh6ysRkECBAgQIAAAQIECBAgQIAAAQIECPRcILkAdPfu3SEGl5s2bQrnnnvuhMDbtm3Lrv5cuXJlOO644w5Zd/Xq1WHx4sXhiSeeCN/97ncPWW4GAQIECBAgQIAAAQIECBAgQIAAAQLVFkjuS5A2btwYjj766Cmp/8///E+23hFHHFG4fly2Z8+e8L3vfa/wG+G/8pWvhOuuu67tPpYsWZLdi7TtQjOnJdDX94PTdaJ+TWuHViYwA4Fun3/523h0+9gz4LEJAQIVE/C6UbGGTDKceBum1iO+h4y3afIg0AQB7/Ob0GU1HizQOu/j/EWLFoWFCxcevIrnBJIUaP0bN77XGR0d7VqNyQWgUw0/o/DTTz+dQU/0j4PYkPy62ZOD/hPD0c997nMHzf3B0xUrVoT3v//9bZeZOTMBfzHMzM1W5Qj06vyL9yfu1bHLkbMXAgR6IeB1oxfq5RxzwYIF5ezIXgjUSMBrVo2aZailCsyfP7/U/dkZgToIdPu8Ty4AnU6T4z1A4yN+zL3oMTAwkC165plnilYxnwCBBgn89E//dIOq7azUm2++ubMd2JoAgY4Fqvqa5fWh49baAQECBAgQIECAwDQEGh2AxsvM4+PZZ58tJNu/f3+2bKJk+rzzzgtnnHFG233Ey9p37NjRdpmZ0xMYHBzMPgr25JNPTm9DaxMg0BMBr309YXdQArUQ8PrQvk3xk0et95yPP/54Vz8W1n5E5hLojkC84jlelOK1oTvejlINgZhHxC9vjo/4vSMT5RLVGLFREChHIN7yJ34Se+fOnWFkZGRaO42fsp7po9EB6JFHHpm5TRSoxft/xkcrLM2eHPSfGMzFn6LHww8/XLTI/GkIxPtgxZ/h4eFpbGVVAgR6JeDPaq/kHZdA9QW8PrTvUf6en/EfBNP9R0H7vZpLoPoCrXvAeW2ofq+MsDyB1nkf9xhf753/5dnaU7UFWvcA7fZ5n9y3wE+nza0AtBVyttu2FY4uXbq03WLzCBAgQIAAAQIECBAgQIAAAQIECBCosECjA9Cjjjoqa038EqMDBw4c0qZ4GXq8JDem0yeffPIhy80gQIAAAQIECBAgQIAAAQIECBAgQKDaAo0OQI877riwevXq8NRTT4WvfvWrh3TqlltuyS5Fj+u07s1xyEpmECBAgAABAgQIECBAgAABAgQIECBQWYFGB6CxK2984xuz5mzcuDHkPwq/ffv28Dd/8zfZsgsvvDD77T8ECBAgQIAAAQIECBAgQIAAAQIECNRLoNFfghRb9apXvSqsWbMmbNu2LVxyySXhnHPOyW4+vGXLlhC/ffMVr3hFWLt2bb26arQECBAgQIAAAQIECBAgQIAAAQIECGQCpV8BevXVV4fLLrss3HXXXVMm/sM//MNw9tlnhw996ENT3qasFefMmRM++tGPhte+9rVhx44d4dprrw3XXXdd2L17d7jgggvChg0bsnuAlnU8+yFAgAABAgQIECBAgAABAgQIECBAoHsCpV8BesMNN4SbbropnHvuueFHfuRHplTJrbfeGv7t3/4tnHjiiVNafzorbdq0adLV58+fH97znveEyy+/PNx3331hbGwsrFy5MixatGjSba1AgAABAgQIECBAgAABAgQIECBAgEB1BUoPQKdT6sjISLj33nvDN77xjWyzXn/RUF9fXzjllFOmU4J1CRAgQIAAAQIECBAgQIAAAQIECBCosEBHAWj82PjnP//555V34MCB7PnP//zPT/rR8bju6Ojo+PZnnXXW+LQJAgQIECBAgAABAgQIECBAgAABAgQIdCrQUQD6Z3/2Z+GlL31paIWe+cG0m5dffvD0S17ykvD617/+4NmeEyBAgAABAgQIECBAgAABAgQIECBAYMYCHQWgq1evDldddVX42te+Nj6Af/mXfwnf/e53w3nnnRde+MIXjs9vNzF37tzsPpurVq0Kv/ALvxCWLl3abjXzCBAgQIAAAQIECBAgQIAAAQIECBAgMCOBjgLQeMS3vOUt2U/r6PFj8TEAfdvb3pZ9s3prvt8ECBAgQIAAAQIECBAgQIAAAQIECBDotkDHAejBA/6lX/qlcPbZZ/syoYNhPCdAgAABAgQIECBAgAABAgQIECBAoOsCpQegF110UdeLcEACBAgQIECAAAECBAgQIECAAAECBAi0Eyg9AM0fZPv27eHb3/522Lt3bxgeHs4vajv9wz/8w+Hkk09uu8xMAgQIECBAgAABAgQIECBAgAABAgQITFfgsASgMfT8vd/7vXD99ddPKfhsDXr9+vVhw4YNrad+EyBAgAABAgQIECBAgAABAgQIECBAoCOB0gPQPXv2hPPPPz/cc889HQ3MxgQIECBAgAABAgQIECBAgAABAgQIEOhUoPQA9IorrhgPP+PH2d/4xjeGF73oReGYY44Js2bNmnC8J5100oTLLSRAgAABAgQIECBAgAABAgQIECBAgMB0BEoPQL/85S9nxz/99NPDli1bwrJly6YzHusSIECAAAECBAgQIECAAAECBAgQIECgNIHZpe3p+zsaGRkJ3/jGN7JdvvnNbxZ+lolrXwQIECBAgAABAgQIECBAgAABAgQITFug1AB0zpw5YdGiRdkg4hWgHgQIECBAgAABAgQIECBAgAABAgQIEOilQKkBaCzkx3/8x7N6Hnjggey3/xAgQIAAAQIECBAgQIAAAQIECBAgQKBXAqUHoGvXrs1queaaa3pVk+MSIECAAAECBAgQIECAAAECBAgQIEAgEyg9AH3HO94R3vCGN4Rbb701XHrppWHPnj2oCRAgQIAAAQIECBAgQIAAAQIECBAg0BOB0r8F/s477wxvfetbw+233x4++tGPhr/9278NZ555Zjj++OPDihUrJiwyXj16zjnnTLiOhQQIECBAgAABAgQIECBAgAABAgQIEJiqQOkB6O/+7u+Gm266afz4O3bsCDfffPP484km+vr6BKATAVlGgAABAgQIECBAgAABAgQIECBAgMC0BEr/CPy0jm5lAgQIECBAgAABAgQIECBAgAABAgQIHEaB0q8Ave6668Lw8PCMhrxgwYIZbWcjAgQIECBAgAABAgQIECBAgAABAgQItBMoPQAdGBhodxzzCBAgQIAAAQIECBAgQIAAAQIECBAg0HUBH4HvOrkDEiBAgAABAgQIECBAgAABAgQIECDQLQEBaLekHYcAAQIECBAgQIAAAQIECBAgQIAAga4LlP4R+HvvvTfs3r17RoW84AUvCMcdd9yMtrURAQIECBAgQIAAAQIECBAgQIAAAQIEDhYoPQC97LLLwk033XTwcab0fMOGDWH9+vVTWtdKBAgQIECAAAECBAgQIECAAAECBAgQmEzAR+AnE7KcAAECBAgQIECAAAECBAgQIECAAIHaCpR+Bei73vWu8Iu/+IuFICMjI+HJJ58M3/nOd8I//dM/Zb9/5md+JvzVX/1VWLJkSeF2FhAgQIAAAQIECBAgQIAAAQIECBAgQGC6AqUHoK9+9aunPIYrrrgivOENb8g+Mv+nf/qn4c///M+nvK0VCRAgQIAAAQIECBAgQIAAAQIECBAgMJlATz8CH6/4jPcLjV989Bd/8RfhC1/4wmTjtZwAAQIECBAgQIAAAQIECBAgQIAAAQJTFuhpABpHOW/evPCa17wmG/AXv/jFKQ/cigQIECBAgAABAgQIECBAgAABAgQIEJhMoOcBaBzgS17ykmyct91222TjtZwAAQIECBAgQIAAAQIECBAgQIAAAQJTFqhEAHrrrbdmA547d+6UB25FAgQIECBAgAABAgQIECBAgAABAgQITCbQ8wA03gN0y5Yt2TjPOuusycZrOQECBAgQIECAAAECBAgQIECAAAECBKYsUPq3wP/DP/xDuP/++yccwPDwcNi7d2+44447wo033pitO2vWrHDeeedNuJ2FBAgQIECAAAECBAgQIECAAAECBAgQmI5A6QHoX//1X2ckaNK5AABAAElEQVTf7D6dQcR13/3ud4ef+ImfmO5m1idAgAABAgQIECBAgAABAgQIECBAgEChQOkBaOGRChacfvrp4Td/8zfDr/7qrxasYTYBAgQIECBAgAABAgQIECBAgAABAgRmJlB6ALpx48awb9++SUcTv/DoiCOOCP39/ZOuawUCBAgQIECAAAECBAgQIECAAAECBAjMRKD0APSoo46ayThsQ4AAAQIECBAgQIAAAQIECBAgQIAAgdIFSg9Ai0b41FNPhfvuuy/Mnz8/xJB06dKlIX7xkQcBAgQIECBAgAABAgQIECBAgAABAgQOl8Dsw7XjuN8777wzvP71rw8rV64MixcvDqeddlpYs2ZNWL58eVixYkV461vfGrZu3Xo4h2DfBAgQIECAAAECBAgQIECAAAECBAg0WOCwBKDDw8Phd37nd0L8gqMbbrghPPTQQ4cQP/744+Gaa64JL3/5y8Of/MmfHLLcDAIECBAgQIAAAQIECBAgQIAAAQIECHQqcFg+Av+BD3xgPNSMH3P/qZ/6qXDKKaeE448/Puzduzc8+OCD4etf/3r45je/GVph6THHHBN++Zd/udN6bE+AAAECBAgQIECAAAECBAgQIECAAIFxgdID0DvuuCPEADQ+zj777PCxj30suxJ0/Ii5iX/+538Ov/VbvxW+853vhLe97W3h/PPPz74ZPreKSQIECBAgQIAAAQIECBAgQIAAAQIECMxYoPSPwH/kIx8JBw4cCKtWrQqbN28uDD/jiF/3uteFGIL29/eH+CVJ11577YwLsSEBAgQIECBAgAABAgQIECBAgAABAgQOFig9AI0fa4+P9evXT+lqzhe/+MXhLW95S7bNLbfckv32HwIECBAgQIAAAQIECBAgQIAAAQIECJQhUGoAOjIyEu66665sXC972cumPL7WuvHeoB4ECBAgQIAAAQIECBAgQIAAAQIECBAoS6DUAHT27Nmhr+8HtxV9+umnpzzG+MVI8TE4ODjlbaxIgAABAgQIECBAgAABAgQIECBAgACByQRKDUDjN76vXr06O+aXv/zlyY49vvy2227Lpk899dTxeSYIECBAgAABAgQIECBAgAABAgQIECDQqUCpAWgczI/92I9lY9qwYUO4//77Jx3f5z73ufEvPzr99NMnXd8KBAgQIECAAAECBAgQIECAAAECBAgQmKpA6QHoe9/73jAwMBCeeOKJ8KpXvSp84hOfCPHeoAc/9uzZE6644opwwQUXhLGxsRCv/rzooosOXs1zAgQIECBAgAABAgQIECBAgAABAgQIzFjgBzfsnPHmh2547LHHhg996EPhHe94R3jooYeyb3i//PLLwwknnBBe9KIXhWeffTY88MAD4b777gute3/OnTs3fPKTnwzz5s07dIfmECBAgAABAgQIECBAgAABAgQIECBAYIYCpQegcRxvf/vbwymnnBLe/OY3ZyHorl27wtatW7Ofg8d52mmnhY997GPBx98PlvGcAAECBAgQIECAAAECBAgQIECAAIFOBQ5LABoHde6554b/+q//CldddVX2e9u2beHuu+8O8WrPk08+OftZu3ZtGBoaCnPmzOm0DtsTIECAAAECBAgQIECAAAECBAgQIEDgEIHDFoDGIw0ODob3vOc94weN9/qM3xTvQYAAAQIECBAgQIAAAQIECBAgQIAAgW4IlP4lSAcP+plnnhmflQ8/v/rVr47fA3R8BRMECBAgQIAAAQIECBAgQIAAAQIECBAoUeCwBaC33XZbeN3rXhfOOOOMtsN905veFI488shw8cUXh507d7Zdx0wCBAgQIECAAAECBAgQIECAAAECBAh0InBYAtBPfOIT4dWvfnW48cYbwz333JN983t+kKOjo+HBBx8M+/btC5/5zGfCmWeeGe688878KqYJECBAgAABAgQIECBAgAABAgQIECDQsUDpAei9994bfv3Xfz0cOHAgG9y6desOCUDjgn/8x38Mv/ZrvxZmz54dHnjggfArv/IrIQajHgQIECBAgAABAgQIECBAgAABAgQIEChLoPQA9P3vf38YHh4ORx99dPj85z8fNm/eHAYGBp433hh6vva1rw1/+Zd/GbZs2RL6+vrC1q1bw7XXXvu89TwhQIAAAQIECBAgQIAAAQIECBAgQIBAJwKlB6D/+q//mo1naGgorF27dtKxnXPOOeGSSy7J1vviF7846fpWIECAAAECBAgQIECAAAECBAgQIECAwFQFSg1AR0ZGso+zx4NfdNFFUx1DeOUrX5mtu23btilvY0UCBAgQIECAAAECBAgQIECAAAECBAhMJlBqADpr1qzsnp7xoPFj8FN9PPPMM9mqCxYsmOom1iNAgAABAgQIECBAgAABAgQIECBAgMCkAqUGoPHeni984Quzg37pS1+a9OCtFb7yla9kky996Utbs/wmQIAAAQIECBAgQIAAAQIECBAgQIBAxwKlBqBxND/3cz+XDWr9+vXhnnvumXSA8UuQNm3alK135plnTrq+FQgQIECAAAECBAgQIECAAAECBAgQIDBVgdID0N/4jd8I8aPse/bsCS9/+ctD/Fb47du3P288Y2Nj2b1CL7vssnD++eeH0dHRcNZZZ03rvqHP26EnBAgQIECAAAECBAgQIECAAAECBAgQaCNQegB60kknhY9//OPZoXbt2hV+//d/Pxx99NFhYGAgrFmzJpx44olh4cKFYdWqVeHKK68M+/bty55/+tOfDn19fW2GaBYBAgQIECBAgAABAgQIECBAgAABAgRmJlB6ABqHMTQ0FK6//vrwghe8YHxUTz/9dLj77rvD/fffH/bv3z8+/2d/9mfD17/+9bB69erxeSYIECBAgAABAgQIECBAgAABAgQIECBQhsBhu+Qy3gt03bp1Id7jc/PmzVnw+eijj4b+/v4QrxKNP6985SvDOeecU0Yd9kGAAAECBAgQIECAAAECBAgQIECAAIFDBA5bABqPFO8FGq/wjD8eBAgQIECAAAECBAgQIECAAAECBAgQ6LbAYfkIfLeLcDwCBAgQIECAAAECBAgQIECAAAECBAi0ExCAtlMxjwABAgQIECBAgAABAgQIECBAgACBJAQEoEm0UREECBAgQIAAAQIECBAgQIAAAQIECLQTEIC2UzGPAAECBAgQIECAAAECBAgQIECAAIEkBASgSbRREQQIECBAgAABAgQIECBAgAABAgQItBMQgLZTMY8AAQIECBAgQIAAAQIECBAgQIAAgSQEBKBJtFERBAgQIECAAAECBAgQIECAAAECBAi0E+hrN9M8AgQIECDQqcDQ0FCnu7A9AQIECBAgQIAAAQIECBDoWMAVoB0T2gEBAgQIECBAgAABAgQIECBAgAABAlUVEIBWtTPGRYAAAQIECBAgQIAAAQIECBAgQIBAxwIC0I4J7YAAAQIECBAgQIAAAQIECBAgQIAAgaoKCECr2hnjIkCAAAECBAgQIECAAAECBAgQIECgYwEBaMeEdkCAAAECBAgQIECAAAECBAgQIECAQFUFBKBV7YxxESBAgAABAgQIECBAgAABAgQIECDQsYAAtGNCOyBAgAABAgQIECBAgAABAgQIECBAoKoCAtCqdsa4CBAgQIAAAQIECBAgQIAAAQIECBDoWEAA2jGhHRAgQIAAAQIECBAgQIAAAQIECBAgUFUBAWhVO2NcBAgQIECAAAECBAgQIECAAAECBAh0LCAA7ZjQDggQIECAAAECBAgQIECAAAECBAgQqKqAALSqnTEuAgQIECBAgAABAgQIECBAgAABAgQ6FhCAdkxoBwQIECBAgAABAgQIECBAgAABAgQIVFVAAFrVzhgXAQIECBAgQIAAAQIECBAgQIAAAQIdCwhAOya0AwIECBAgQIAAAQIECBAgQIAAAQIEqiogAK1qZ4yLAAECBAgQIECAAAECBAgQIECAAIGOBQSgHRPaAQECBAgQIECAAAECBAgQIECAAAECVRUQgFa1M8ZFgAABAgQIECBAgAABAgQIECBAgEDHAgLQjgntgAABAgQIECBAgAABAgQIECBAgACBqgr0VXVgKY1rYGAgpXJ6VsucOXPC2NhY4NmzFjgwAQIECBAoRcDf5e0Z+/qee2ve39+fve9pv6a5BNISmDt3blaQ14a0+qqaiQXmzZs3vsKCBQtC68/B+EwTBBIViNlOfMT3OqOjo12r8rl3WV07ZPMOtGjRouYVfRgqnjVrVrZXnocB1y4JECBAgEAXBfxd3h679V4nLo3/KPAg0DQBrw1N63iz682/5scA1INA0wQWLlzY1ZIFoF3gfvTRR7twlPQPsWzZsuxKiF27dqVfrAoJECBAgEDCAt4btW/u0qVLQ+sfwY899lgYGRlpv6K5BBITiIH/4OBg8NqQWGOVM6HA4sWLxz/duHv37rB///4J17eQQCoC8ern5cuXh8cffzwMDw9Pq6xjjz12WuvnV3YP0LyGaQIECBAgQIAAAQIECBAgQIAAAQIEkhIQgCbVTsUQIECAAAECBAgQIECAAAECBAgQIJAXEIDmNUwTIECAAAECBAgQIECAAAECBAgQIJCUgAA0qXYqhgABAgQIECBAgAABAgQIECBAgACBvIAANK9hmgABAgQIECBAgAABAgQIECBAgACBpAQEoEm1UzEECBAgQIAAAQIECBAgQIAAAQIECOQFBKB5DdMECBAgQIAAAQIECBAgQIAAAQIECCQlIABNqp2KIUCAAAECBAgQIECAAAECBAgQIEAgLyAAzWuYJkCAAAECBAgQIECAAAECBAgQIEAgKQEBaFLtVAwBAgQIECBAgAABAgQIECBAgAABAnkBAWhewzQBAgQIECBAgAABAgQIECBAgAABAkkJCECTaqdiCBAgQIAAAQIECBAgQIAAAQIECBDICwhA8xqmCRAgQIAAAQIECBAgQIAAAQIECBBISkAAmlQ7FUOAAAECBAgQIECAAAECBAgQIECAQF5AAJrXME2AAAECBAgQIECAAAECBAgQIECAQFICAtCk2qkYAgQIECBAgAABAgQIECBAgAABAgTyAgLQvIZpAgQIECBAgAABAgQIECBAgAABAgSSEhCAJtVOxRAgQIAAAQIECBAgQIAAAQIECBAgkBcQgOY1TBMgQIAAAQIECBAgQIAAAQIECBAgkJSAADSpdiqGAAECBAgQIECAAAECBAgQIECAAIG8gAA0r2GaAAECBAgQIECAAAECBAgQIECAAIGkBASgSbVTMQQIECBAgAABAgQIECBAgAABAgQI5AUEoHkN0wQIECBAgAABAgQIECBAgAABAgQIJCUgAE2qnYohQIAAAQIECBAgQIAAAQIECBAgQCAvIADNa5gmQIAAAQIECBAgQIAAAQIECBAgQCApAQFoUu1UDAECBAgQIECAAAECBAgQIECAAAECeQEBaF7DNAECBAgQIECAAAECBAgQIECAAAECSQkIQJNqp2IIECBAgAABAgQIECBAgAABAgQIEMgLCEDzGqYJECBAgAABAgQIECBAgAABAgQIEEhKQACaVDsVQ4AAAQIECBAgQIAAAQIECBAgQIBAXkAAmtcwTYAAAQIECBAgQIAAAQIECBAgQIBAUgIC0KTaqRgCBAgQIECAAAECBAgQIECAAAECBPICAtC8hmkCBAgQIECAAAECBAgQIECAAAECBJISEIAm1U7FECBAgAABAgQIECBAgAABAgQIECCQFxCA5jVMEyBAgAABAgQIECBAgAABAgQIECCQlIAANKl2KoYAAQIECBAgQIAAAQIECBAgQIAAgbyAADSvYZoAAQIECBAgQIAAAQIECBAgQIAAgaQEBKBJtVMxBAgQIECAAAECBAgQIECAAAECBAjkBQSgeQ3TBAgQIECAAAECBAgQIECAAAECBAgkJSAATaqdiiFAgAABAgQIECBAgAABAgQIECBAIC8gAM1rmCZAgAABAgQIECBAgAABAgQIECBAICkBAWhS7VQMAQIECBAgQIAAAQIECBAgQIAAAQJ5AQFoXsM0AQIECBAgQIAAAQIECBAgQIAAAQJJCQhAk2qnYggQIECAAAECBAgQIECAAAECBAgQyAsIQPMapgkQIECAAAECBAgQIECAAAECBAgQSEpAAJpUOxVDgAABAgQIECBAgAABAgQIECBAgEBeQACa1zBNgAABAgQIECBAgAABAgQIECBAgEBSAgLQpNqpGAIECBAgQIAAAQIECBAgQIAAAQIE8gIC0LyGaQIECBAgQIAAAQIECBAgQIAAAQIEkhIQgCbVTsUQIECAAAECBAgQIECAAAECBAgQIJAXEIDmNUwTIECAAAECBAgQIECAAAECBAgQIJCUgAA0qXYqhgABAgQIECBAgAABAgQIECBAgACBvIAANK9hmgABAgQIECBAgAABAgQIECBAgACBpAQEoEm1UzEECBAgQIAAAQIECBAgQIAAAQIECOQFBKB5DdMECBAgQIAAAQIECBAgQIAAAQIECCQlIABNqp2KIUCAAAECBAgQIECAAAECBAgQIEAgLyAAzWuYJkCAAAECBAgQIECAAAECBAgQIEAgKQEBaFLtVAwBAgQIECBAgAABAgQIECBAgAABAnkBAWhewzQBAgQIECBAgAABAgQIECBAgAABAkkJCECTaqdiCBAgQIAAAQIECBAgQIAAAQIECBDICwhA8xqmCRAgQIAAAQIECBAgQIAAAQIECBBISkAAmlQ7FUOAAAECBAgQIECAAAECBAgQIECAQF5AAJrXME2AAAECBAgQIECAAAECBAgQIECAQFICAtCk2qkYAgQIECBAgAABAgQIECBAgAABAgTyAgLQvIZpAgQIECBAgAABAgQIECBAgAABAgSSEhCAJtVOxRAgQIAAAQIECBAgQIAAAQIECBAgkBcQgOY1TBMgQIAAAQIECBAgQIAAAQIECBAgkJSAADSpdiqGAAECBAgQIECAAAECBAgQIECAAIG8gAA0r2GaAAECBAgQIECAAAECBAgQIECAAIGkBASgSbVTMQQIECBAgAABAgQIECBAgAABAgQI5AUEoHkN0wQIECBAgAABAgQIECBAgAABAgQIJCUgAE2qnYohQIAAAQIECBAgQIAAAQIECBAgQCAvIADNa5gmQIAAAQIECBAgQIAAAQIECBAgQCApAQFoUu1UDAECBAgQIECAAAECBAgQIECAAAECeQEBaF7DNAECBAgQIECAAAECBAgQIECAAAECSQkIQJNqp2IIECBAgAABAgQIECBAgAABAgQIEMgLCEDzGqYJECBAgAABAgQIECBAgAABAgQIEEhKQACaVDsVQ4AAAQIECBAgQIAAAQIECBAgQIBAXkAAmtcwTYAAAQIECBAgQIAAAQIECBAgQIBAUgIC0KTaqRgCBAgQIECAAAECBAgQIECAAAECBPICAtC8hmkCBAgQIECAAAECBAgQIECAAAECBP6vvTsBk6uq8wZ8sgeSEAibRCOCKBGMg4jMKIqCSnDclTwjroMiqKOoiMqMOiqjDKDCRB4FBcVlwA1HVGAQkc0VHMQRZZHFYUcQYlgkrPWd//W71+ququ7qdHe6btV7nidU1V3Pfc9N0fn1uef0lYAAtK+a08UQIECAAAECBAgQIECAAAECBAgQINAsIABt1vCeAAECBAgQIECAAAECBAgQIECAAIG+EhCA9lVzuhgCBAgQIECAAAECBAgQIECAAAECBJoFBKDNGt4TIECAAAECBAgQIECAAAECBAgQINBXAgLQvmpOF0OAAAECBAgQIECAAAECBAgQIECAQLOAALRZw3sCBAgQIECAAAECBAgQIECAAAECBPpKQADaV83pYggQIECAAAECBAgQIECAAAECBAgQaBYQgDZreE+AAAECBAgQIECAAAECBAgQIECAQF8JCED7qjldDAECBAgQIECAAAECBAgQIECAAAECzQIC0GYN7wkQIECAAAECBAgQIECAAAECBAgQ6CsBAWhfNaeLIUCAAAECBAgQIECAAAECBAgQIECgWUAA2qzhPQECBAgQIECAAAECBAgQIECAAAECfSUgAO2r5nQxBAgQIECAAAECBAgQIECAAAECBAg0CwhAmzW8J0CAAAECBAgQIECAAAECBAgQIECgrwQEoH3VnC6GAAECBAgQIECAAAECBAgQIECAAIFmAQFos4b3BAgQIECAAAECBAgQIECAAAECBAj0lYAAtK+a08UQIECAAAECBAgQIECAAAECBAgQINAsIABt1vCeAAECBAgQIECAAAECBAgQIECAAIG+EpjZV1ezlhdzzjnnpF//+tcd995kk03Sq1/96o7rrSBAgAABAgQIECBAgAABAgQIECBAoDcFBKC5Xb7zne+kiy66qGMLbb311gLQjjpWECBAgAABAgQIECBAgAABAgQIEOhdAQFobpsrr7yyaKEDDjggzZkzp6W1FixY0LLMAgIECBAgQIAAAQIECBAgQIAAAQIEel9g4APQW2+9Nd15551p4403TitWrOj9FlNDAgQIECBAgAABAgQIECBAgAABAgS6Fhj4SZDK3p/bbrtt12g2JECAAAECBAgQIECAAAECBAgQIECgHgIC0P//+HsZgD744IPpjjvuqEfrqSUBAgQIECBAgAABAgQIECBAgAABAiMKDPwj8GUP0Ag+3/Wud6WLL744PfTQQynG/XzqU5+aYlzQeDx+pHLuueemL37xi2032XDDDdPhhx/edp2FYxOYNWtWajQaadGiRWPb0dYECBAgQIBATwn4f3n75pg5868/mi9cuLD9RpYS6EOBGTNmFFflu6EPG9cldRQo7/vYIPKHefPmddzWCgL9JDB9+l/6YsbPOpHxrKvy15+y1tUZe+w8V111VVGjr3zlKym+gJYuXZoiDL3mmmvS2Wefnf7nf/4nrVy5Mm2zzTYda37LLbekn/3sZ23Xb7rppm0nVmq7sYVdCTT/j6KrHWxEgAABAgQI9JRAu0kne6qCPVAZRj3QCKqwzgXc9+uc3Al7RCA6+ygEBk1g9uzZ6/SSBzoAveeee9JNN91UgC9fvjy9+93vTuutt17xOZZ/5CMfSZdeemk69NBD0+c+97nU/Fv5ddpKTkZgkgX23HPPST6DwxMgQIAAgd4W6NX/F55xxhm9DddDtdOGPdQYqkKAAAECBHpMYKAD0Ag7TzrppPTHP/4x7bDDDmnatGlV8yxevDgdcsgh6dWvfnWKx+QvvPDC9PSnP71a3/zmJS95Sdptt92aF1Xvo2vvH/7wh+qzN2svEMMJRPfo1atXr/1B7EmAAAECBAhMuYCfjbpvAlbdW/Xqltpw9JaJf5dtsMEG/t00OpUt+khg/vz51WPvq1atSvfff38fXZ1LIdBZIHp+brTRRun2228vnsDuvGXrms0337x1YZdLBjoAjXByyZIlxZ92XgG7bNmy4jH4eCS+UwAa/8Mue462O87NN9/cbrFlaynw8MMPr+WediNAgAABAgR6QcD/y7tvBVbdW/Xqltpw9JYpx4BjNbqVLfpHoLzv44rivfu/f9rWlYwsUN7r8Vq+H3mPiVk78LPAj8a42WabFZtEMq0QIECAAAECBAgQIECAAAECBAgQIFAvgYHuAXrFFVekn//852n99ddPK1asaNtyt956a7H8UY96VNv1FhIgQIAAAQIECBAgQIAAAQIECBAg0LsCAx2Axjgbxx9/fDH2584775y23HLLIS11xx13pN/+9rfFsu23337IOh8IECBAgAABAgQIECBAgAABAgQIEOh9gYF+BD4mPion1vniF784ZPDVNWvWpMMPPzzde++9aZdddklLly7t/dZUQwIECBAgQIAAAQIECBAgQIAAAQIEhggMdA/QuXPnpg996EPpwAMPTGeddVa66KKL0h577JFmzJiRzj///HTDDTekrbbaKr3rXe8aguYDAQIECBAgQIAAAQIECBAgQIAAAQL1EBjoADSaaKeddkrHHHNMWrlyZbrsssvS17/+9aLlYlb35cuXF+FojBGqECBAgAABAgQIECBAgAABAgQIECBQP4GBD0CjyWJ8z8997nNp9erV6frrr08LFixIS5YsSdOnD/QIAfW7m9WYAAECBAgQIECAAAECBAgQIECAwDABAWgTyMKFC1P8UQgQIECAAAECBAgQIECAAAECBAgQ6A8BXRz7ox1dBQECBAgQIECAAAECBAgQIECAAAECbQQEoG1QLCJAgAABAgQIECBAgAABAgQIECBAoD8EBKD90Y6uggABAgQIECBAgAABAgQIECBAgACBNgIC0DYoFhEgQIAAAQIECBAgQIAAAQIECBAg0B8CAtD+aEdXQYAAAQIECBAgQIAAAQIECBAgQIBAGwEBaBsUiwgQIECAAAECBAgQIECAAAECBAgQ6A8BAWh/tKOrIECAAAECBAgQIECAAAECBAgQIECgjYAAtA2KRQQIECBAgAABAgQIECBAgAABAgQI9IeAALQ/2tFVECBAgAABAgQIECBAgAABAgQIECDQRkAA2gbFIgIECBAgQIAAAQIECBAgQIAAAQIE+kNAANof7egqCBAgQIAAAQIECBAgQIAAAQIECBBoIyAAbYNiEQECBAgQIECAAAECBAgQIECAAAEC/SEgAO2PdnQVBAgQIECAAAECBAgQIECAAAECBAi0ERCAtkGxiAABAgQIECBAgAABAgQIECBAgACB/hAQgPZHO7oKAgQIECBAgAABAgQIECBAgAABAgTaCAhA26BYRIAAAQIECBAgQIAAAQIECBAgQIBAfwgIQPujHV0FAQIECBAgQIAAAQIECBAgQIAAAQJtBASgbVAsIkCAAAECBAgQIECAAAECBAgQIECgPwQEoP3Rjq6CAAECBAgQIECAAAECBAgQIECAAIE2AgLQNigWESBAgAABAgQIECBAgAABAgQIECDQHwIC0P5oR1dBgAABAgQIECBAgAABAgQIECBAgEAbAQFoGxSLCBAgQIAAAQIECBAgQIAAAQIECBDoDwEBaH+0o6sgQIAAAQIECBAgQIAAAQIECBAgQKCNgAC0DYpFBAgQIECAAAECBAgQIECAAAECBAj0h4AAtD/a0VUQIECAAAECBAgQIECAAAECBAgQINBGQADaBsUiAgQIECBAgAABAgQIECBAgAABAgT6Q0AA2h/t6CoIECBAgAABAgQIECBAgAABAgQIEGgjIABtg2IRAQIECBAgQIAAAQIECBAgQIAAAQL9ISAA7Y92dBUECBAgQIAAAQIECBAgQIAAAQIECLQREIC2QbGIAAECBAgQIECAAAECBAgQIECAAIH+EBCA9kc7ugoCBAgQIECAAAECBAgQIECAAAECBNoICEDboFhEgAABAgQIECBAgAABAgQIECBAgEB/CMzsj8twFQTqIbDPPvvUo6JqSYAAAQIECBAgQIAAAQIECBDoEwE9QPukIV0GAQIECBAgQIAAAQIECBAgQIAAAQKtAgLQVhNLCBAgQIAAAQIECBAgQIAAAQIECBDoEwEBaJ80pMsgQIAAAQIECBAgQIAAAQIECBAgQKBVQADaamIJAQIECBAgQIAAAQIECBAgQIAAAQJ9IiAA7ZOGdBkECBAgQIAAAQIECBAgQIAAAQIECLQKCEBbTSwhQIAAAQIECBAgQIAAAQIECBAgQKBPBASgfdKQLoMAAQIECBAgQIAAAQIECBAgQIAAgVYBAWiriSUECBAgQIAAAQIECBAgQIAAAQIECPSJgAC0TxrSZRAgQIAAAQIECBAgQIAAAQIECBAg0CogAG01sYQAAQIECBAgQIAAAQIECBAgQIAAgT4REID2SUO6DAIECBAgQIAAAQIECBAgQIAAAQIEWgUEoK0mlhAgQIAAAQIECBAgQIAAAQIECBAg0CcCAtA+aUiXQYAAAQIECBAgQIAAAQIECBAgQIBAq4AAtNXEEgIECBAgQIAAAQIECBAgQIAAAQIE+kRAANonDekyCBAgQIAAAQIECBAgQIAAAQIECBBoFRCAtppYQoAAAQIECBAgQIAAAQIECBAgQIBAnwgIQPukIV0GAQIECBAgQIAAAQIECBAgQIAAAQKtAgLQVhNLCBAgQIAAAQIECBAgQIAAAQIECBDoEwEBaJ80pMsgQIAAAQIECBAgQIAAAQIECBAgQKBVQADaamIJAQIECBAgQIAAAQIECBAgQIAAAQJ9IiAA7ZOGdBkECBAgQIAAAQIECBAgQIAAAQIECLQKCEBbTSwhQIAAAQIECBAgQIAAAQIECBAgQKBPBASgfdKQLoMAAQIECBAgQIAAAQIECBAgQIAAgVYBAWiriSUECBAgQIAAAQIECBAgQIAAAQIECPSJgAC0TxrSZRAgQIAAAQIECBAgQIAAAQIECBAg0CogAG01sYQAAQIECBAgQIAAAQIECBAgQIAAgT4REID2SUO6DAIECBAgQIAAAQIECBAgQIAAAQIEWgUEoK0mlhAgQIAAAQIECBAgQIAAAQIECBAg0CcCAtA+aUiXQYAAAQIECBAgQIAAAQIECBAgQIBAq4AAtNXEEgIECBAgQIAAAQIECBAgQIAAAQIE+kRAANonDekyCBAgQIAAAQIECBAgQIAAAQIECBBoFRCAtppYQoAAAQIECBAgQIAAAQIECBAgQIBAnwgIQPukIV0GAQIECBAgQIAAAQIECBAgQIAAAQKtAgLQVhNLCBAgQIAAAQIECBAgQIAAAQIECBDoEwEBaJ80pMsgQIAAAQIECBAgQIAAAQIECBAgQKBVQADaamIJAQIECBAgQIAAAQIECBAgQIAAAQJ9IiAA7ZOGdBkECBAgQIAAAQIECBAgQIAAAQIECLQKCEBbTSwhQIAAAQIECBAgQIAAAQIECBAgQKBPBASgfdKQLoMAAQIECBAgQIAAAQIECBAgQIAAgVYBAWiriSUECBAgQIAAAQIECBAgQIAAAQIECPSJgAC0TxrSZRAgQIAAAQIECBAgQIAAAQIECBAg0CogAG01sYQAAQIECBAgQIAAAQIECBAgQIAAgT4RmNkn1+EyCBAgQIAAAQIEaiKwzz771KSmqtlOQPu1U7GMAAECBAgQ6GUBPUB7uXXUjQABAgQIECBAgAABAgQIECBAgACBcQkIQMfFZ2cCBAgQIECAAAECBAgQIECAAAECBHpZQADay62jbgQIECBAgAABAgQIECBAgAABAgQIjEtAADouPjsTIECAAAECBAgQIECAAAECBAgQINDLAgLQXm4ddSNAgAABAgQIECBAgAABAgQIECBAYFwCAtBx8dmZAAECBAgQIECAAAECBAgQIECAAIFeFhCA9nLrqBsBAgQIECBAgAABAgQIECBAgAABAuMSEICOi8/OBAgQIECAAAECBAgQIECAAAECBAj0soAAtJdbR90IECBAgAABAgQIECBAgAABAgQIEBiXgAB0XHx2JkCAAAECBAgQIECAAAECBAgQIECglwUEoL3cOupGgAABAgQIECBAgAABAgQIECBAgMC4BASg4+KzMwECBAgQIECAAAECBAgQIECAAAECvSwgAO3l1lE3AgQIECBAgAABAgQIECBAgAABAgTGJSAAHRefnQkQIECAAAECBAgQIECAAAECBAgQ6GUBAWgvt466ESBAgAABAgQIECBAgAABAgQIECAwLgEB6Lj47EyAAAECBAgQIECAAAECBAgQIECAQC8LCEB7uXXUjQABAgQIECBAgAABAgQIECBAgACBcQkIQMfFZ2cCBAgQIECAAAECBAgQIECAAAECBHpZQADay62jbgQIECBAgAABAgQIECBAgAABAgQIjEtAADouPjsTIECAAAECBAgQIECAAAECBAgQINDLAjN7uXL9UrcFCxb0y6VM6XXMmDGjOD/PKW0GJydAgAABAgTWoYCfe9Yh9iSdShuODjtz5l/+WcpqdCtb9I/A7Nmzq4tZb731UvPnaoU3BPpQoMx21l9//dRoNNbZFQpA1wH13Llz18FZ+v8U06f/pcMyz/5va1dIgAABAgQI/EXAzz31vxO04ehtOG3atGIjVqNb2aJ/BMp/38YVRfi5LoOg/lF0JXUUKL/z58yZs06rLwBdB9y33XbbOjhL/59i0aJFxf8UVq1a1f8X6woJECBAgAABAlnAz5H1vw204ehtGL2AFi5c6H4fncoWfSQQPZ7nz59fXNHq1avTfffd10dX51IIdBaIwH/jjTdOke08+OCDnTdss2aLLbZos7S7RcYA7c7JVgQIECBAgAABAgQIECBAgAABAgQI1FBAAFrDRlNlAgQIECBAgAABAgQIECBAgAABAgS6ExCAdudkKwIECBAgQIAAAQIECBAgQIAAAQIEaiggAK1ho6kyAQIECBAgQIAAAQIECBAgQIAAAQLdCQhAu3OyFQECBAgQIECAAAECBAgQIECAAAECNRQQgNaw0VSZAAECBAgQIECAAAECBAgQIECAAIHuBASg3TnZigABAgQIECBAgAABAgQIECBAgACBGgoIQGvYaKpMgAABAgQIECBAgAABAgQIECBAgEB3AgLQ7pxsRYAAAQIECBAgQIAAAQIECBAgQIBADQUEoDVsNFUmQIAAAQIECBAgQIAAAQIECBAgQKA7AQFod062IkCAAAECBAgQIECAAAECBAgQIECghgIC0Bo2mioTIECAAAECBAgQIECAAAECBAgQINCdgAC0OydbESBAgAABAgQIECBAgAABAgQIECBQQwEBaA0bTZUJECBAgAABAgQIECBAgAABAgQIEOhOQADanZOtCBAgQIAAAQIECBAgQIAAAQIECBCooYAAtIaNpsoECBAgQIAAAQIECBAgQIAAAQIECHQnIADtzslWBAgQIECAAAECBAgQIECAAAECBAjUUEAAWsNGU2UCBAgQIECAAAECBAgQIECAAAECBLoTEIB252QrAgQIECBAgAABAgQIECBAgAABAgRqKCAArWGjqTIBAgQIECBAgAABAgQIECBAgAABAt0JCEC7c7IVAQIECBAgQIAAAQIECBAgQIAAAQI1FBCA1rDRVJkAAQIECBAgQIAAAQIECBAgQIAAge4EBKDdOdmKAAECBAgQIECAAAECBAgQIECAAIEaCghAa9hoqkyAAAECBAgQIECAAAECBAgQIECAQHcCAtDunGxFgAABAgQIECBAgAABAgQIECBAgEANBQSgNWw0VSZAgAABAgQIECBAgAABAgQIECBAoDsBAWh3TrYiQIAAAQIECBAgQIAAAQIECBAgQKCGAgLQGjaaKhMgQIAAAQIECBAgQIAAAQIECBAg0J2AALQ7J1sRIECAAAECBAgQIECAAAECBAgQIFBDAQFoDRtNlQkQIECAAAECBAgQIECAAAECBAgQ6E5AANqdk60IECBAgAABAgQIECBAgAABAgQIEKihgAC0ho2mygQIECBAgAABAgQIECBAgAABAgQIdCcgAO3OyVYECBAgQIAAAQIECBAgQIAAAQIECNRQQABaw0ZTZQIECBAgQIAAAQIECBAgQIAAAQIEuhMQgHbnZCsCBAgQIECAAAECBAgQIECAAAECBGooIACtYaOpMgECBAgQIECAAAECBAgQIECAAAEC3QkIQLtzshUBAgQIECBAgAABAgQIECBAgAABAjUUEIDWsNFUmQABAgQIECBAgAABAgQIECBAgACB7gQEoN052YoAAQIECBAgQIAAAQIECBAgQIAAgRoKCEBr2GiqTIAAAQIECBAgQIAAAQIECBAgQIBAdwIC0O6cbEWAAAECBAgQIECAAAECBAgQIECAQA0FBKA1bDRVJkCAAAECBAgQIECAAAECBAgQIECgOwEBaHdOtiJAgAABAgQIECBAgAABAgQIECBAoIYCAtAaNpoqEyBAgAABAgQIECBAgAABAgQIECDQnYAAtDsnWxEgQIAAAQIECBAgQIAAAQIECBAgUEMBAWgNG02VCRAgQIAAAQIECBAgQIAAAQIECBDoTkAA2p2TrQgQIECAAAECBAgQIECAAAECBAgQqKGAALSGjabKBAgQIECAAAECBAgQIECAAAECBAh0JyAA7c7JVgQIECBAgAABAgQIECBAgAABAgQI1FBAAFrDRlNlAgQIECBAgAABAgQIECBAgAABAgS6ExCAdudkKwIECBAgQIAAAQIECBAgQIAAAQIEaiggAK1ho6kyAQIECBAgQIAAAQIECBAgQIAAAQLdCQhAu3OyFQECBAgQIECAAAECBAgQIECAAAECNRQQgNaw0VSZAAECBAgQIECAAAECBAgQIECAAIHuBASg3TnZigABAgQIECBAgAABAgQIECBAgACBGgoIQGvYaKpMgAABAgQIECBAgAABAgQIECBAgEB3AgLQ7pxsRYAAAQIECBAgQIAAAQIECBAgQIBADQUEoDVsNFUmQIAAAQIECBAgQIAAAQIECBAgQKA7AQFod062IkCAAAECBAgQIECAAAECBAgQIECghgIC0Bo2mioTIECAAAECBAgQIECAAAECBAgQINCdgAC0OydbESBAgAABAgQIECBAgAABAgQIECBQQwEBaA0bTZUJECBAgAABAgQIECBAgAABAgQIEOhOQADanZOtCBAgQIAAAQIECBAgQIAAAQIECBCoocDMGtZZlXtMYJ999umxGqkOAQIECBAgQKA/BPyc1R/t2GtX0av31QknnNBrVKlXrXoOKleoF9uvF53UqT8EevW7wd/DzveXHqCdbawhQIAAAQIECBAgQIAAAQIECBAgQKDmAgLQmjeg6hMgQIAAAQIECBAgQIAAAQIECBAg0FlAANrZxhoCBAgQIECAAAECBAgQIECAAAECBGouIACteQOqPgECBAgQIECAAAECBAgQIECAAAECnQUEoJ1trCFAgAABAgQIECBAgAABAgQIECBAoOYCAtCaN6DqEyBAgAABAgQIECBAgAABAgQIECDQWUAA2tnGGgIECBAgQIAAAQIECBAgQIAAAQIEai4gAK15A6o+AQIECBAgQIAAAQIECBAgQIAAAQKdBQSgnW2sIUCAAAECBAgQIECAAAECBAgQIECg5gIC0Jo3oOoTIECAAAECBAgQIECAAAECBAgQINBZQADa2cYaAgQIECBAgAABAgQIECBAgAABAgRqLiAArXkDqj4BAgQIECBAgAABAgQIECBAgAABAp0FBKCdbawhQIAAAQIECBAgQIAAAQIECBAgQKDmAgLQmjeg6hMgQIAAAQIECBAgQIAAAQIECBAg0FlAANrZxhoCBAgQIECAAAECBAgQIECAAAECBGouIACteQOqPgECBAgQIECAAAECBAgQIECAAAECnQUEoJ1trCFAgAABAgQIECBAgAABAgQIECBAoOYCAtCaN6DqEyBAgAABAgQIECBAgAABAgQIECDQWUAA2tnGGgIECBAgQIAAAQIECBAgQIAAAQIEai4gAK15A6o+AQIECBAgQIAAAQIECBAgQIAAAQKdBQSgnW2sIUCAAAECBAgQIECAAAECBAgQIECg5gIC0Jo3oOoTIECAAAECBAgQIECAAAECBAgQINBZQADa2cYaAgQIECBAgAABAgQIECBAgAABAgRqLiAArXkDqj4BAgQIECBAgAABAgQIECBAgAABAp0FBKCdbawhQIAAAQIECBAgQIAAAQIECBAgQKDmAgLQmjeg6hMgQIAAAQIECBAgQIAAAQIECBAg0FlAANrZxhoCBAgQIECAAAECBAgQIECAAAECBGouIACteQOqPgECBAgQIECAAAECBAgQIECAAAECnQUEoJ1trCFAgAABAgQIECBAgAABAgQIECBAoOYCAtCaN6DqEyBAgAABAgQIECBAgAABAgQIECDQWUAA2tnGGgIECBAgQIAAAQIECBAgQIAAAQIEai4gAK15A6o+AQIECBAgQIAAAQIECBAgQIAAAQKdBQSgnW2sIUCAAAECBAgQIECAAAECBAgQIECg5gIC0Jo3oOoTIECAAAECBAgQIECAAAECBAgQINBZQADa2cYaAgQIECBAgAABAgQIECBAgAABAgRqLjCz5vWfsOpffvnl6Zvf/Ga69tpr07x589KyZcvS7rvvnrbeeusJO4cDESBAgAABAgQIECBAgAABAgQIECCwbgUEoNn75JNPTitXrizk58+fn+6///70y1/+Mn3jG99Ihx12WNpxxx3Xbas4GwECBAgQIECAAAECBAgQIECAAAECEyIw8I/AX3LJJelTn/pUmj17dvrYxz6WTj/99HTGGWekAw44IN17773poIMOSrfccsuEYDsIAQIECBAgQIAAAQIECBAgQIAAAQLrVmDgA9AvfelLqdFopNe85jVp1113TdOmTUuzZs1KK1asSHvttVd64IEH0imnnLJuW8XZCBAgQIAAAQIECBAgQIAAAQIECBCYEIGBDkD//Oc/pwsvvLCAXL58eQtouezUU09NDz74YMt6CwgQIECAAAECBAgQIECAAAECBAgQ6G2BgQ5AL7vssqL355IlS9LixYtbWmrp0qVpwYIFafXq1em6665rWW8BAQIECBAgQIAAAQIECBAgQIAAAQK9LTDQkyDdeOONRetsuOGGHVsp1t11113p+uuv7zgj/JlnnpmOOeaYtsdYtGhROvbYY9uus5AAAQIECBAgQIAAgf4W2GSTTfr7Aifw6lhNIOYUHEr7jQ19+vS/9kfbYIMNis5ZYzuCrQm0CtTh72EMPRllpCyu9crGv2SgA9B77rmnEBwJPb6IopTbFh+G/eeOO+5Il1566bClf/m46aabFmOKtl1pIQECBAgQIECAAAECfS0Q8wso3Qmw6s6pV7fSfmvfMjNnDnQ0s/Zw9mwRqNPfw3Vd14H+WxZjgEaJx9w7lfnz5xer1qxZ02mTgV9+xhlnDLwBAAIECBAgQIAAAQJ1EfDze/ctxap7K1sSGCQB3w31a+2BDkDnzZtXtNj999/fseXuu+++Yt2cOXM6bhOzxb/kJS9puz669t58881t11k4NoEYTqDRaKRVq1aNbUdbE6ixQPQij98Ix71/yy231PhKVJ3A2ATiCYz4f+9tt902th1tTaDGAhtttFGaO3ducQW33npreuihh2p8NapOoHuB9ddfPy1cuNC/m7ons2UfCERHrLLDVTxVWmYPfXBpLoHAiAKzZ89OG2+8cfFz/lgnHN9iiy1GPPZIKwc6AC3HRrjzzjs7GsX4n1HKsLTdhhFO6LLeTsYyAgQIECBAgAABAgQIECBAgAABAlMr8NdRd6e2HlNy9jIALUPOdpUow9H4jbxCgAABAgQIECBAgAABAgQIECBAgEC9BAY6AN1ss82K1ooZ3h944IGWllu9enWKrugxO9vjHve4lvUWECBAgAABAgQIECBAgAABAgQIECDQ2wIDHYAuXrw4LV26NN19993pggsuaGmpc845pxh7KbaJcWkUAgQIECBAgAABAgQIECBAgAABAgTqJTDQAWg01d5771202AknnJCaH4WPgee/+tWvFutWrFhRvPoPAQIECBAgQIAAAQIECBAgQIAAAQL1EhjoSZCiqZ71rGelJzzhCemyyy5L++67b9ptt91SzEJ11llnpdtvvz3tsssuaffdd69Xq6otAQIECBAgQIAAAQIECBAgQIAAAQKFwMAHoDNmzEhHH310Ouqoo9KZZ56ZTjzxxAImlu+1115p//33L8YAdb8QIECAAAECBAgQIECAAAECBAgQIFA/gYEPQKPJ5syZkw4++OB00EEHpauvvjo1Go20ZMmSNG/evPq1qBoTIECAAAECBAgQIECAAAECBAgQIFAJCEAripRmzpyZtt1226Yl3hIgQIAAAQIECBAgQIAAAQIECBAgUGeBgZ8Eqc6Np+4ECBAgQIAAAQIECBAgQIAAAQIECIwsIAAd2cdaAgQIECBAgAABAgQIECBAgAABAgRqLCAArXHjqToBAgQIECBAgAABAgQIECBAgAABAiMLCEBH9rGWAAECBAgQIECAAAECBAgQIECAAIEaCwhAa9x4qk6AAAECBAgQIECAAAECBAgQIECAwMgCAtCRfawlQIAAAQIECBAgQIAAAQIECBAgQKDGAgLQGjeeqhMgQIAAAQIECBAgQIAAAQIECBAgMLKAAHRkH2sJECBAgAABAgQIECBAgAABAgQIEKixgAC0xo2n6gQIECBAgAABAgQIECBAgAABAgQIjCwgAB3Zx1oCBAgQIECAAAECBAgQIECAAAECBGosIACtceOpOgECBAgQIECAAAECBAgQIECAAAECIwsIQEf2sZYAAQIECBAgQIAAAQIECBAgQIAAgRoLCEBr3HiqToAAAQIECBAgQIAAAQIECBAgQIDAyAIC0JF9rCVAgAABAgQIECBAgAABAgQIECBAoMYCAtAaN56qEyBAgAABAgQIECBAgAABAgQIECAwsoAAdGQfawkQIECAAAECBAgQIECAAAECBAgQqLGAALTGjafqBAgQIECAAAECBAgQIECAAAECBAiMLCAAHdnHWgIECBAgQIAAAQIECBAgQIAAAQIEaiwgAK1x46k6AQIECBAgQIAAAQIECBAgQIAAAQIjCwhAR/axlgABAgQIECBAgAABAgQIECBAgACBGgsIQGvceKpOgAABAgQIECBAgAABAgQIECBAgMDIAgLQkX2sJUCAAAECBAgQIECAAAECBAgQIECgxgIC0Bo3nqoTIECAAAECBAgQIECAAAECBAgQIDCygAB0ZB9rCRAgQIAAAQIECBAgQIAAAQIECBCosYAAtMaNp+oECBAgQIAAAQIECBAgQIAAAQIECIwsIAAd2cdaAgQIECBAgAABAgQIECBAgAABAgRqLCAArXHjqToBAgQIECBAgAABAgQIECBAgAABAiMLTGvkMvIm1o5XYNWqVeM9hP2zwKxZswqHBx54gAeBgRG48MIL05o1a9K0adPSM5/5zIG5bhdKYObMmWn69Onp/vvvh0FgYAR+85vfpDvuuKO43p133jnNnTt3YK7dhQ62wIwZM1J87993332DDeHqB0rg97//fbr++uuLa37iE5+YFi1aNFDX72IHVyD+bTt79uzi5/yxRpIbbbTRWsMJQNeazo4ECBCYfIHdd9893XjjjcUvAOIfxgoBAgQI9K/Am970pnT++ecXF3jWWWelJUuW9O/FujICBAgMuMBhhx2WTjjhhELh2GOPTbvtttuAi7h8ApMr4BH4yfV1dAIECBAgQIAAAQIECBAgQIAAAQIEplBAADqF+E5NgAABAgQIECBAgAABAgQIECBAgMDkCghAJ9fX0QkQIECAAAECBAgQIECAAAECBAgQmEIBAegU4js1AQIECBAgQIAAAQIECBAgQIAAAQKTKyAAnVxfRydAgAABAgQIECBAgAABAgQIECBAYAoFZk7huZ2aAAECBEYRmDVrVjEDfLwqBAgQINDfAuV3fn9fpasjQIAAgRCYOXNm8XN+vJ8+Xd+0cFAITKbAtEYuk3kCxyZAgAABAgQIECBAgAABAgQIECBAgMBUCfg1w1TJOy8BAgQIECBAgAABAgQIECBAgAABApMuIACddGInIECAAAECBAgQIECAAAECBAgQIEBgqgQEoFMl77wECBAgQIAAAQIECBAgQIAAAQIECEy6gAB00omdgAABAgQIECBAgAABAgQIECBAgACBqRIQgE6VvPMSIECAAAECBAgQIECAAAECBAgQIDDpAjMn/QxOQIAAAQIdBc4555z0ox/9KN1www3p4YcfTo9+9KPT0572tPS85z2v4z6XX355+uY3v5muvfbaNG/evLRs2bK0++67p6233rrjPlYQIECAwNQLnHXWWencc88tvvO32GKL4vt7t912S/G+U/Gd30nGcgIECNRHoNFow8n9EQAAKntJREFUpEMOOSRdf/316WMf+1jafPPN21bed35bFgsJTIjAtPwXsTEhR3IQAgQIEOha4L777kvvec970sUXX1zss8EGGxSvd955Z/G6ww47pCOOOCKtt956Q4558sknp5UrVxbL5s+fn+6///7iT2x32GGHpR133HHI9j4QIECAwNQLPPjgg+nggw9OF1xwQVGZBQsWpLvvvjvFj+ELFy4svu+32267lor6zm8hsYAAAQK1FPja176WPv3pTxd1P+mkk9KSJUtarsN3fguJBQQmVMAj8BPK6WAECBDoTiB+AIrw8zGPeUw6/vjj02mnnVb8Oe6444ofiH71q1+lo48+esjBLrnkkvSpT30qzZ49u/jN8emnn57OOOOMdMABB6R77703HXTQQemWW24Zso8PBAgQIDD1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An0hUPYAPemkk4b0AI2L853fF03sInpcQADa4w2kegQI9J/Ae9/73vSzn/2sqwv72Mc+lnbddddq27L36JlnnlmMBRorIkR92ctelvbff/80d+7caltvCBAgQKB3BK644op05JFHpksvvbSqVHx/P+c5z0lve9vbUrsJ7HznV1TeECBAoPYCIwWgcXG+82vfxC6gxwUEoD3eQKpHgACBdgLR8zPGjItO/DGG0Lx589ptZhkBAgQI9JjAqlWr0nXXXVd8bz/60Y9Os2fPHrWGvvNHJbIBAQIE+kbAd37fNKUL6TEBAWiPNYjqECBAgAABAgQIECBAgAABAgQIECAwcQImQZo4S0ciQIAAAQIECBAgQIAAAQIECBAgQKDHBASgPdYgqkOAAAECBAgQIECAAAECBAgQIECAwMQJCEAnztKRCBAgQIAAAQIECBAgQIAAAQIECBDoMQEBaI81iOoQIECAAAECBAgQIECAAAECBAgQIDBxAgLQibN0JAIECBAgQIAAAQIECBAgQIAAAQIEekxAANpjDaI6BAgQIECAAAECBAgQIECAAAECBAhMnIAAdOIsHYkAAQIECBAgQIAAAQIECBAgQIAAgR4TEID2WIOoDgECBAgQIECAAAECBAgQIECAAAECEycgAJ04S0ciQIAAAQIECBAgQIAAAQIECBAgQKDHBASgPdYgqkOAAAECBAgQIECAAAECBAgQIECAwMQJCEAnztKRCBAgQIAAAQIECEyKwK9//eu0aNGidOqpp07K8R2UAAECBAgQINDPAjP7+eJcGwECBAgQINBbAmvWrElz587trUqpDYEeFrjsssvS2WefnX7wgx+kVatWpU9+8pPpyiuvTHvuuWd6whOe0MM1VzUCBAgQIECAQO8I6AHaO22hJgQIECBAYEoFfvzjH6dp06Z1/DN9+vQ0Z86ctOGGG6btttsuvetd70rRK220cumll6YVK1akLbfcMq2//vpp0003TS996UvTJz7xiXTnnXeOtrv1BCZc4Nprr63u87gPe7Hcdddd6Y1vfGN64hOfmN72trel73znO0U1zz333HTggQcWy/fff/90//33r3X1t95668LhJS95yVofY7Qd77777q6+J0Y7Tj+tr8P910/eroUAAQIECISAANR9QIAAAQIECHQl0Gg0irBl9erVKXql/cd//Ef6m7/5myLM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wkVPusDFF1+cdtxxx5THAE15KIdJP58TECBAgAABAgT6SWD0rhD9dLWuhQABAgQIECBAgAABAgQIECBAgACBgRKYOVBX62IJECBAgAABAgQI1FBghx12KIZXyBMy1bD2E1flPIt8zGEwrgPOmTNnQodJGFdl7EyAAAECBAisE4HB/glqnRA7CQECBAgQIECAAIHxCcS4prNmzRrfQfpg7xgnNMZ7HU+58sor0zbbbDOeQ9iXAAECBAgQqJmAALRmDaa6BAgQIECAQO8IPOIRjygmbemdGqkJgf4WiMmoYoKx8ZSYDEohQIAAAQIEBkvAJEiD1d6ulgABAgQIECBAgAABAgQIECBAgMBACZgEaaCa28USIECAAAECBAgQIECAAAECBAgQGCwBAehgtberJUCAAAECBAgQIECAAAECBAgQIDBQAgLQgWpuF0uAAAECBAgQIECAAAECBAgQIEBgsAQEoIPV3q6WAAECBAgQIECAAAECBAgQIECAwEAJCEAHqrldLAECBAgQIECAAAECBAgQIECAAIHBEhCADlZ7u1oCBAgQIECAAAECBAgQIECAAAECAyUgAB2o5naxBAgQIECAAAECBAgQIECAAAECBAZLQAA6WO3tagkQIECAAAECBAgQIECAAAECBAgMlIAAdKCa28USIECAAAECBAgQIECAAAECBAgQGCwBAehgtberJUCAAAECBAgQIECAAAECBAgQIDBQAgLQgWpuF0uAAAECBAgQIECAAAECBAgQIEBgsAQEoIPV3q6WAAECBAgQIECAAAECBAgQIECAwEAJCEAHqrldLAECBAgQIECAAAECBAgQIECAAIHBEhCADlZ7u1oCBAgQIECAAAECBAgQIECAAAECAyXw/wCu20xEpEU34AAAAABJRU5ErkJggg==" width="672" /></p>
+</div>
 </div>
 
 
