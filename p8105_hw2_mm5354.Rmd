@@ -32,9 +32,9 @@ transit_data =
 nrow(transit_data)
 ncol(transit_data)
 ```
-This dataset contains the following variables: line, station, name, station latitude, station longitude, routes served, entry, vending, entrance type, and ADA compliance.Data cleaning step so far is cleaning variable/column name for each column.The dimension of this resulting dataset is `r nrow(transit_data)` rows by `r ncol(transit_data)` columns.
+This dataset contains the following variables: line, station, name, station latitude, station longitude, routes served, entry, vending, entrance type, and ADA compliance.Data cleaning step so far is cleaning variable/column name for each column.The dimension of this resulting dataset is `r nrow(transit_data)` rows by `r ncol(transit_data)` columns. Are these data tidy? I don't think this dataset is tidy at all, because from route1 to route11, these 11 variables/columns contain so many missing values (NAs) and these 11 variables seem too complicated for us to find out/look for useful information from them. We can just simply reformat data so that route number (1-11) and route name (A, B, C, D, Q, R...) are distinct variables. 
 
-
+ 
 #####How many distinct stations are there?
 ```{r Distinct_station}
 count(distinct(transit_data, station_name, line))
@@ -67,7 +67,7 @@ count(distinct(transit_tidy_data, station_name, line))
 3. omit rows that do not include dumpster-specific data
 4. rounds the number of sports balls to the nearest integer and converts the result to an integer variable (using as.integer)
 
-```{r Problem2_data_import}
+```{r Problem2_data_import&cleaning}
 #Specify the sheet in the Excel file and to omit columns containing notes (using the range argument and cell_cols() function)
 Trash_Wheel = 
   readxl::read_excel("./HealthyHarborWaterWheelTotals2017-9-26.xlsx", sheet = 1, range = ("A2:N258")) %>% 
@@ -94,13 +94,12 @@ Precipitation2016noNa = na.omit(Precipitation2016, cols = seq_along(Precipitatio
   mutate(., year = "2016")
 Precipitation2017noNa = na.omit(Precipitation2017, cols = seq_along(Precipitation2017)) %>% 
   mutate(., year = "2017")
-
 ```
 ```{r Precipitation_2016&2017_join}
 Join_data = left_join(Precipitation2016noNa, Precipitation2017noNa, by = "month")
 Join_data[, 1] <- month.name[sapply(Join_data[, 1], as.integer)]
 ```
-Number of observations in both resulting datasets: `r nrow(Trash_Wheel)` for Mr. Trash Wheel sheet and `r nrow(Join_data)` for precipitation data for 2016 and 2017 in total. For available data,the total precipitation in 2017 is `r sum(Precipitation2017noNa$total)` The median number of sports balls in a dumpster in 2016 is `r median(na.omit(cbind(Trash_Wheel$sports_balls[Trash_Wheel$year == 2016])))`.
+This dataset is initially not tidy at all, because "Total" this variable/column contains missing values (NAs). So my data cleaning step included omitting NAs, and I also cleaned variable names. Number of observations in both resulting datasets: `r nrow(Trash_Wheel)` for Mr. Trash Wheel sheet and `r nrow(Join_data)` for precipitation data for 2016 and 2017 in total. For available data,the total precipitation in 2017 is `r sum(Precipitation2017noNa$total)` The median number of sports balls in a dumpster in 2016 is `r median(na.omit(cbind(Trash_Wheel$sports_balls[Trash_Wheel$year == 2016])))`.
 
 #Problem 3
 For this question:
@@ -114,11 +113,13 @@ For this question:
 7. In 2002, what is the median of the “Excellent” response value?
 8. Make a histogram of “Excellent” response values in the year 2002.
 9. Make a scatterplot showing the proportion of “Excellent” response values in New York County and Queens County (both in NY State) in each year from 2002 to 2010
-```{r Problem3_data_import}
+```{r, include=FALSE}
 # install.packages("devtools")
 devtools::install_github("p8105/p8105.datasets", force = TRUE)
-
 library(p8105.datasets)
+```
+
+```{r Problem3_data_import}
 data("brfss_smart2010")
 brfss = janitor::clean_names(brfss_smart2010) %>% 
   #Focus on the “Overall Health” topic
@@ -131,7 +132,7 @@ brfss = janitor::clean_names(brfss_smart2010) %>%
 ```{r structure_mutate_dataset}
 brfss_structure = spread(brfss, key = "response", value = "data_value") %>% 
 #Create a new variable showing the proportion of responses that were “Excellent” or “Very Good”
-  mutate(., propotion_response = (Excellent + `Very good`)/(Excellent + `Very good` + Fair + Good + Poor))
+  mutate(., propotion_response = Excellent + `Very good`)
 ```
 
 
@@ -148,7 +149,9 @@ summary(brfss_responsevalue$data_value)
 ####Make a histogram of “Excellent” response values in the year 2002.
 ```{r Histogram_excellent}
 ggplot(brfss_responsevalue, aes(x = brfss_responsevalue$data_value)) + 
-  geom_histogram()
+  geom_histogram() +
+  labs(x = "“Excellent” response values", 
+       title = "Histogram of “Excellent” response values in the year 2002")
 ```
 
 ####Make a scatterplot showing the proportion of “Excellent” response values in New York County and Queens County (both in NY State) in each year from 2002 to 2010.
@@ -159,5 +162,7 @@ brfss_responseNY = spread(brfss, key = "response", value = "data_value") %>%
  
 ggplot(brfss_responseNY, aes(x = year, y = proportion_excellent, color = locationdesc)) + 
   geom_point() +
-  geom_smooth(se = FALSE)
+  geom_smooth(se = FALSE) +
+  labs(title = "Scatterplot of the proportion of “Excellent” response values vs Year") +
+  theme(legend.position = "bottom")
 ```
