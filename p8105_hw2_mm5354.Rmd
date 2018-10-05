@@ -70,7 +70,7 @@ count(distinct(transit_tidy_data, station_name, line))
 ```{r Problem2_data_import&cleaning}
 #Specify the sheet in the Excel file and to omit columns containing notes (using the range argument and cell_cols() function)
 Trash_Wheel = 
-  readxl::read_excel("./HealthyHarborWaterWheelTotals2017-9-26.xlsx", sheet = 1, range = ("A2:N258")) %>% 
+  readxl::read_excel("./HealthyHarborWaterWheelTotals2018-7-28.xlsx", sheet = 1, range = ("A2:N338")) %>% 
   janitor::clean_names() %>% 
   #Omit rows that do not include dumpster-specific data
   filter(!is.na(dumpster)) %>% 
@@ -80,12 +80,12 @@ Trash_Wheel =
 ####Read and clean precipitation data for 2016 and 2017. For each, omit rows without precipitation data and add a variable year. Next, combine datasets and convert month to a character variable (the variable month.name is built into R and should be useful).
 ```{r Precipitation_2016_import}
 Precipitation2016 = 
-  readxl::read_excel("./HealthyHarborWaterWheelTotals2017-9-26.xlsx", sheet = 4, skip = 1) %>% 
+  readxl::read_excel("./HealthyHarborWaterWheelTotals2018-7-28.xlsx", sheet = 5, skip = 1) %>% 
   janitor::clean_names()
 ```
 ```{r Precipitation_2017_import}
 Precipitation2017 = 
-  readxl::read_excel("./HealthyHarborWaterWheelTotals2017-9-26.xlsx", sheet = 3, skip = 1) %>% 
+  readxl::read_excel("./HealthyHarborWaterWheelTotals2018-7-28.xlsx", sheet = 4, skip = 1) %>% 
   janitor::clean_names()
 ```
 
@@ -139,6 +139,8 @@ brfss_structure = spread(brfss, key = "response", value = "data_value") %>%
 ####How many unique locations are included in the dataset? Is every state represented? What state is observed the most?
 ```{r unique_location}
 length(unique(brfss$locationdesc)) 
+length(unique(brfss$locationabbr))
+#Therefore, every state is represented. 
 names(which.max(table(brfss$locationabbr))) 
 ```
 ####In 2002, what is the median of the “Excellent” response value?
@@ -157,7 +159,7 @@ ggplot(brfss_responsevalue, aes(x = brfss_responsevalue$data_value)) +
 ####Make a scatterplot showing the proportion of “Excellent” response values in New York County and Queens County (both in NY State) in each year from 2002 to 2010.
 ```{r Scatterplot_excellent}
 brfss_responseNY = spread(brfss, key = "response", value = "data_value") %>% 
-  mutate(., proportion_excellent = (Excellent)/(Excellent + `Very good` + Fair + Good + Poor)) %>% 
+  mutate(., proportion_excellent = Excellent) %>% 
   filter(., locationdesc == "NY - New York County" | locationdesc == "NY - Queens County")
  
 ggplot(brfss_responseNY, aes(x = year, y = proportion_excellent, color = locationdesc)) + 
