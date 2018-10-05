@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 #####Read and clean the data
 ```{r Problem1_import_data}
 transit_data = 
-  read_csv("./NYC_Transit_Subway_Entrance_And_Exit_Data.csv") %>% 
+  read_csv("./data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv") %>% 
   janitor::clean_names() %>% 
   #Retain line, station, name, station latitude / longitude, routes served, entry, vending, entrance type, and ADA compliance. 
   select(., line, station_name, station_latitude, station_longitude, route1:route11, entry, vending, entrance_type, ada) %>% 
@@ -70,7 +70,7 @@ count(distinct(transit_tidy_data, station_name, line))
 ```{r Problem2_data_import&cleaning}
 #Specify the sheet in the Excel file and to omit columns containing notes (using the range argument and cell_cols() function)
 Trash_Wheel = 
-  readxl::read_excel("./HealthyHarborWaterWheelTotals2018-7-28.xlsx", sheet = 1, range = ("A2:N338")) %>% 
+  readxl::read_excel("./data/HealthyHarborWaterWheelTotals2018-7-28.xlsx", sheet = 1, range = ("A2:N338")) %>% 
   janitor::clean_names() %>% 
   #Omit rows that do not include dumpster-specific data
   filter(!is.na(dumpster)) %>% 
@@ -80,12 +80,12 @@ Trash_Wheel =
 ####Read and clean precipitation data for 2016 and 2017. For each, omit rows without precipitation data and add a variable year. Next, combine datasets and convert month to a character variable (the variable month.name is built into R and should be useful).
 ```{r Precipitation_2016_import}
 Precipitation2016 = 
-  readxl::read_excel("./HealthyHarborWaterWheelTotals2018-7-28.xlsx", sheet = 5, skip = 1) %>% 
+  readxl::read_excel("./data/HealthyHarborWaterWheelTotals2018-7-28.xlsx", sheet = 5, skip = 1) %>% 
   janitor::clean_names()
 ```
 ```{r Precipitation_2017_import}
 Precipitation2017 = 
-  readxl::read_excel("./HealthyHarborWaterWheelTotals2018-7-28.xlsx", sheet = 4, skip = 1) %>% 
+  readxl::read_excel("./data/HealthyHarborWaterWheelTotals2018-7-28.xlsx", sheet = 4, skip = 1) %>% 
   janitor::clean_names()
 ```
 
@@ -99,7 +99,7 @@ Precipitation2017noNa = na.omit(Precipitation2017, cols = seq_along(Precipitatio
 Join_data = left_join(Precipitation2016noNa, Precipitation2017noNa, by = "month")
 Join_data[, 1] <- month.name[sapply(Join_data[, 1], as.integer)]
 ```
-In the first dataset Mr. Transh Wheel, it contains `r nrow(Trash_Wheel)` rows by `r ncol(Trash_Wheel)` columns after data cleaning in steps above. This dataset consists of records about dumpster numbers, time of collection and types of litters being collected. My data cleaning step included cleaning variable names using clean_names() this function from janitor package. As for Precipitation data for 2016, it contains `r nrow(Precipitation2016)` rows by `r ncol(Precipitation2016)` columns after data cleaning in steps above. Precipitation data for 2017 contains `r nrow(Precipitation2017)` rows by `r ncol(Precipitation2017)` columns after data cleaning in steps above. 
+In the first dataset Mr. Transh Wheel, it contains `r nrow(Trash_Wheel)` rows by `r ncol(Trash_Wheel)` columns after data cleaning in steps above. This dataset consists of records about dumpster numbers, time of collection and types of litters being collected. My data cleaning step included cleaning variable names using clean_names() this function from janitor package. As for Precipitation data for 2016, it contains `r nrow(Precipitation2016noNa)` rows by `r ncol(Precipitation2016noNa)` columns after data cleaning in steps above. Precipitation data for 2017 contains `r nrow(Precipitation2017noNa)` rows by `r ncol(Precipitation2017noNa)` columns after data cleaning in steps above. 
 
 Number of observations in both Mr. Trash Wheel and 2016&2017 Precipitation resulting datasets: `r nrow(Trash_Wheel)` for Mr. Trash Wheel sheet and 14 for precipitation data for 2016 and 2017 in total. For available data,the total precipitation in 2017 is `r sum(Precipitation2017noNa$total)` The median number of sports balls in a dumpster in 2016 is `r median(na.omit(cbind(Trash_Wheel$sports_balls[Trash_Wheel$year == 2016])))`.
 
