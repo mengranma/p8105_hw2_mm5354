@@ -32,7 +32,7 @@ transit_data =
 nrow(transit_data)
 ncol(transit_data)
 ```
-This dataset contains the following variables: line, station, name, station latitude, station longitude, routes served, entry, vending, entrance type, and ADA compliance.Data cleaning step so far is cleaning variable/column name for each column.The dimension of this resulting dataset is `r nrow(transit_data)` rows by `r ncol(transit_data)` columns. Are these data tidy? I don't think this dataset is tidy at all, because from route1 to route11, these 11 variables/columns contain so many missing values (NAs) and these 11 variables seem too complicated for us to find out/look for useful information from them. We can just simply reformat data so that route number (1-11) and route name (A, B, C, D, Q, R...) are distinct variables. 
+This dataset contains the following variables: line, station, name, station latitude, station longitude, routes served, entry, vending, entrance type, and ADA compliance.Data cleaning step so far is cleaning variable/column name for each column using clean_names() function from janitor package, in order to remove special characters like spaces in the variable names.The dimension of this resulting dataset is `r nrow(transit_data)` rows by `r ncol(transit_data)` columns. Are these data tidy? I don't think this dataset is tidy at all, because from route1 to route11, these 11 variables/columns contain so many missing values (NAs) and these 11 variables seem too complicated for us to find out/look for useful information from them. We can just simply reformat data so that route number (1-11) and route name (A, B, C, D, Q, R...) are distinct variables. 
 
  
 #####How many distinct stations are there?
@@ -99,7 +99,9 @@ Precipitation2017noNa = na.omit(Precipitation2017, cols = seq_along(Precipitatio
 Join_data = left_join(Precipitation2016noNa, Precipitation2017noNa, by = "month")
 Join_data[, 1] <- month.name[sapply(Join_data[, 1], as.integer)]
 ```
-This dataset is initially not tidy at all, because "Total" this variable/column contains missing values (NAs). So my data cleaning step included omitting NAs, and I also cleaned variable names. Number of observations in both resulting datasets: `r nrow(Trash_Wheel)` for Mr. Trash Wheel sheet and `r nrow(Join_data)` for precipitation data for 2016 and 2017 in total. For available data,the total precipitation in 2017 is `r sum(Precipitation2017noNa$total)` The median number of sports balls in a dumpster in 2016 is `r median(na.omit(cbind(Trash_Wheel$sports_balls[Trash_Wheel$year == 2016])))`.
+In the first dataset Mr. Transh Wheel, it contains `r nrow(Trash_Wheel)` rows by `r ncol(Trash_Wheel)` columns after data cleaning in steps above. This dataset consists of records about dumpster numbers, time of collection and types of litters being collected. My data cleaning step included cleaning variable names using clean_names() this function from janitor package. As for Precipitation data for 2016, it contains `r nrow(Precipitation2016)` rows by `r ncol(Precipitation2016)` columns after data cleaning in steps above. Precipitation data for 2017 contains `r nrow(Precipitation2017)` rows by `r ncol(Precipitation2017)` columns after data cleaning in steps above. 
+
+Number of observations in both Mr. Trash Wheel and 2016&2017 Precipitation resulting datasets: `r nrow(Trash_Wheel)` for Mr. Trash Wheel sheet and 14 for precipitation data for 2016 and 2017 in total. For available data,the total precipitation in 2017 is `r sum(Precipitation2017noNa$total)` The median number of sports balls in a dumpster in 2016 is `r median(na.omit(cbind(Trash_Wheel$sports_balls[Trash_Wheel$year == 2016])))`.
 
 #Problem 3
 For this question:

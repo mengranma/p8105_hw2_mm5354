@@ -161,7 +161,7 @@ $(document).ready(function () {
 <pre><code>## [1] 1868</code></pre>
 <pre class="r"><code>ncol(transit_data)</code></pre>
 <pre><code>## [1] 19</code></pre>
-<p>This dataset contains the following variables: line, station, name, station latitude, station longitude, routes served, entry, vending, entrance type, and ADA compliance.Data cleaning step so far is cleaning variable/column name for each column.The dimension of this resulting dataset is 1868 rows by 19 columns. Are these data tidy? I don’t think this dataset is tidy at all, because from route1 to route11, these 11 variables/columns contain so many missing values (NAs) and these 11 variables seem too complicated for us to find out/look for useful information from them. We can just simply reformat data so that route number (1-11) and route name (A, B, C, D, Q, R…) are distinct variables.</p>
+<p>This dataset contains the following variables: line, station, name, station latitude, station longitude, routes served, entry, vending, entrance type, and ADA compliance.Data cleaning step so far is cleaning variable/column name for each column using clean_names() function from janitor package, in order to remove special characters like spaces in the variable names.The dimension of this resulting dataset is 1868 rows by 19 columns. Are these data tidy? I don’t think this dataset is tidy at all, because from route1 to route11, these 11 variables/columns contain so many missing values (NAs) and these 11 variables seem too complicated for us to find out/look for useful information from them. We can just simply reformat data so that route number (1-11) and route name (A, B, C, D, Q, R…) are distinct variables.</p>
 </div>
 <div id="how-many-distinct-stations-are-there" class="section level5">
 <h5>How many distinct stations are there?</h5>
@@ -234,7 +234,8 @@ Precipitation2017noNa = na.omit(Precipitation2017, cols = seq_along(Precipitatio
   mutate(., year = &quot;2017&quot;)</code></pre>
 <pre class="r"><code>Join_data = left_join(Precipitation2016noNa, Precipitation2017noNa, by = &quot;month&quot;)
 Join_data[, 1] &lt;- month.name[sapply(Join_data[, 1], as.integer)]</code></pre>
-<p>This dataset is initially not tidy at all, because “Total” this variable/column contains missing values (NAs). So my data cleaning step included omitting NAs, and I also cleaned variable names. Number of observations in both resulting datasets: 285 for Mr. Trash Wheel sheet and 12 for precipitation data for 2016 and 2017 in total. For available data,the total precipitation in 2017 is 32.93 The median number of sports balls in a dumpster in 2016 is 26.</p>
+<p>In the first dataset Mr. Transh Wheel, it contains 285 rows by 14 columns after data cleaning in steps above. This dataset consists of records about dumpster numbers, time of collection and types of litters being collected. My data cleaning step included cleaning variable names using clean_names() this function from janitor package. As for Precipitation data for 2016, it contains 13 rows by 2 columns after data cleaning in steps above. Precipitation data for 2017 contains 13 rows by 2 columns after data cleaning in steps above.</p>
+<p>Number of observations in both Mr. Trash Wheel and 2016&amp;2017 Precipitation resulting datasets: 285 for Mr. Trash Wheel sheet and 14 for precipitation data for 2016 and 2017 in total. For available data,the total precipitation in 2017 is 32.93 The median number of sports balls in a dumpster in 2016 is 26.</p>
 </div>
 </div>
 <div id="problem-3" class="section level1">
