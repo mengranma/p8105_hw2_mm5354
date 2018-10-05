@@ -32,23 +32,28 @@ transit_data =
 nrow(transit_data)
 ncol(transit_data)
 ```
-This dataset contains the following variables: line, station, name, station latitude, station longitude, routes served, entry, vending, entrance type, and ADA compliance.Data cleaning step so far is cleaning variable/column name for each column using clean_names() function from janitor package, in order to remove special characters like spaces in the variable names.The dimension of this resulting dataset is `r nrow(transit_data)` rows by `r ncol(transit_data)` columns. Are these data tidy? I don't think this dataset is tidy at all, because from route1 to route11, these 11 variables/columns contain so many missing values (NAs) and these 11 variables seem too complicated for us to find out/look for useful information from them. We can just simply reformat data so that route number (1-11) and route name (A, B, C, D, Q, R...) are distinct variables. 
+This dataset contains the following variables: line, station, name, station latitude, station longitude, routes served, entry, vending, entrance type, and ADA compliance.Data cleaning step so far is cleaning variable/column name for each column using clean_names() function from janitor package, in order to remove special characters like spaces in the variable names.The dimension of this resulting dataset is **`r nrow(transit_data)`** rows by **`r ncol(transit_data)`** columns. Are these data tidy? I don't think this dataset is tidy at all, because from route1 to route11, these 11 variables/columns contain so many missing values (NAs) and these 11 variables seem too complicated for us to find out/look for useful information from them. We can just simply reformat data so that route number (1-11) and route name (A, B, C, D, Q, R...) are distinct variables. 
 
  
 #####How many distinct stations are there?
 ```{r Distinct_station}
 count(distinct(transit_data, station_name, line))
 ```
+There are **465** distinct train stations.
+
 ####How many stations are ADA compliant?
 ```{r Distinct_station_ADA}
 sum(distinct(transit_data, station_name, line, ada)$ada == TRUE)
 ```
+**84** of the train stations are ADA compliant.
 
 #####What proportion of station entrances / exits without vending allow entrance?
 ```{r Proportion_vending}
 sum(transit_data$vending == "NO")
 sum(transit_data$vending == "NO" & transit_data$entry == TRUE)/sum(transit_data$vending == "NO")
 ```
+**0.377** of the train stations without vending allow entrance.
+
 ####Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train? Of the stations that serve the A train, how many are ADA compliant?
 ```{r A_train_data}
 transit_tidy_data = gather(transit_data, key = route_number, value = route_name, route1:route11) %>% 
@@ -58,7 +63,7 @@ count(distinct(transit_tidy_data, station_name, line))
 transit_tidy_data = filter(transit_tidy_data, transit_tidy_data$ada == TRUE)
 count(distinct(transit_tidy_data, station_name, line))
 ```
-
+**60** stations serve train A, and **17** are ADA compliant.
 
 #Problem 2
 #####Read and clean the Mr. Trash Wheel sheet:
@@ -145,11 +150,15 @@ length(unique(brfss$locationabbr))
 #Therefore, every state is represented. 
 names(which.max(table(brfss$locationabbr))) 
 ```
+**404** unique locations are included, they are from **51** states. Thus, every state is represented. **New Jersey** state is observed the most.
+
 ####In 2002, what is the median of the “Excellent” response value?
 ```{r Excellent_count}
 brfss_responsevalue = filter(brfss, brfss$response == "Excellent" & brfss$year == 2002) 
 summary(brfss_responsevalue$data_value)
 ```
+The median is **23.6**.
+
 ####Make a histogram of “Excellent” response values in the year 2002.
 ```{r Histogram_excellent}
 ggplot(brfss_responsevalue, aes(x = brfss_responsevalue$data_value)) + 
